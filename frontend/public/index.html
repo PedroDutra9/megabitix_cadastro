@@ -242,6 +242,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         Contratos
       </div>
+      <div class="nav-item" onclick="showPage('cobrancas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Cobranças
+      </div>
     </div>
     <div class="nav-section">
       <div class="nav-label">Cadastros</div>
@@ -473,7 +477,7 @@
     <div class="card">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nº Contrato</th><th>Venda Ref.</th><th>Cliente</th><th>Valor</th><th>Gerado em</th><th>Implantação</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Nº Contrato</th><th>Venda Ref.</th><th>Cliente</th><th>Valor</th><th>Gerado em</th><th>Assinado</th><th>Ações</th></tr></thead>
           <tbody id="contratos-table"></tbody>
         </table>
       </div>
@@ -481,6 +485,58 @@
   </div>
 
 </div><!-- /main -->
+
+<!-- COBRANÇAS -->
+  <div class="page" id="page-cobrancas">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Cobranças</div>
+        <div class="page-sub">Controle de parcelas e pagamentos</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      <div class="stat-card accent">
+        <div class="stat-label">Valor Recebido</div>
+        <div class="stat-value" id="cob-recebido" style="font-size:20px;">R$ 0</div>
+        <div class="stat-sub" id="cob-pagas">0 parcelas pagas</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">A Receber</div>
+        <div class="stat-value" id="cob-areceber" style="font-size:20px;">R$ 0</div>
+        <div class="stat-sub" id="cob-pendentes">0 parcelas pendentes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Vencido</div>
+        <div class="stat-value" id="cob-vencido" style="font-size:20px;color:var(--red);">R$ 0</div>
+        <div class="stat-sub" id="cob-vencidas">0 parcelas vencidas</div>
+      </div>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por cliente..." class="search-input" id="search-cobrancas" oninput="renderCobrancas()">
+      <div class="search-filters">
+        <select id="filter-cob-status" onchange="renderCobrancas()">
+          <option value="">Todos</option>
+          <option value="vencido">Vencidos</option>
+          <option value="vence_hoje">Vencem hoje</option>
+          <option value="vence_semana">Vencem esta semana</option>
+          <option value="pendente">Pendentes</option>
+          <option value="pago">Pagos</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Cliente</th><th>Venda</th><th>Parcela</th>
+            <th>Valor</th><th>Vencimento</th><th>Pagamento</th>
+            <th>Status</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="cobrancas-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 <!-- ===== MODALS ===== -->
 
@@ -771,6 +827,75 @@
   </div>
 </div>
 
+<!-- Modal Parcelas da Venda -->
+<div class="modal-overlay" id="modal-parcelas">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="parcelas-modal-title">Parcelas da Venda</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;" id="parcelas-modal-sub"></div>
+      </div>
+      <div class="modal-close" onclick="closeModal('modal-parcelas')">✕</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Pagamento</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="parcelas-detalhe-table"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-parcelas')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Upload Contrato Assinado -->
+<div class="modal-overlay" id="modal-upload-assinado">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">Contrato Assinado</div>
+      <div class="modal-close" onclick="closeModal('modal-upload-assinado')">✕</div>
+    </div>
+    <input type="hidden" id="upload-contrato-id">
+    <div id="assinado-atual" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);" id="assinado-nome-atual"></div>
+          <div style="font-size:12px;color:var(--text3);" id="assinado-data-atual"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-blue btn-sm" onclick="baixarAssinado()">⬇ Baixar</button>
+          <button class="btn btn-danger btn-sm" onclick="removerAssinado()">✕ Remover</button>
+        </div>
+      </div>
+    </div>
+    <div id="assinado-upload-area">
+      <div style="border:2px dashed var(--border);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:border-color 0.2s;"
+        onclick="document.getElementById('input-assinado').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="handleAssinadoDrop(event)">
+        <div style="font-size:32px;margin-bottom:8px;">📄</div>
+        <div style="font-size:14px;color:var(--text);margin-bottom:4px;">Clique ou arraste o PDF assinado</div>
+        <div style="font-size:12px;color:var(--text3);">Formato PDF · Máximo 10MB</div>
+        <input type="file" id="input-assinado" accept=".pdf" style="display:none;" onchange="selecionarAssinado(this)">
+      </div>
+      <div id="assinado-preview" style="display:none;margin-top:12px;padding:10px 14px;background:var(--bg3);border:1px solid var(--accent);border-radius:8px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">📄</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);" id="assinado-preview-nome"></div>
+          <div style="font-size:12px;color:var(--text3);" id="assinado-preview-size"></div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="limparAssinado()">✕</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-upload-assinado')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-assinado" onclick="salvarAssinado()" style="display:none;">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Minha Conta / Trocar Senha -->
 <div class="modal-overlay" id="modal-minha-conta">
   <div class="modal" style="width:420px;">
@@ -974,6 +1099,7 @@ function showPage(page, evt) {
   if (page === 'vendas')    renderVendas();
   if (page === 'contratos') renderContratos();
   if (page === 'estoque')   renderEstoque();
+  if (page === 'cobrancas') renderCobrancas();
 }
 
 // ─── MODALS ─────────────────────────────────────────────
@@ -1469,8 +1595,15 @@ async function renderContratos() {
         <td class="td-name">${c.cliente_nome}</td>
         <td style="color:var(--accent);font-weight:600;">${fmtMoeda(c.valor_total)}</td>
         <td>${fmtData(c.gerado_em)}</td>
-        <td><span class="badge ${c.tem_implantacao?'badge-blue':'badge-gray'}">${c.tem_implantacao?'Sim':'Não'}</span></td>
-        <td><button class="btn btn-blue btn-sm" onclick="gerarContrato(${c.venda_id})">📄 Visualizar</button></td>
+        <td>
+          ${c.assinado_nome
+            ? `<span class="badge badge-green" title="Enviado em ${fmtData(c.assinado_em)}">✓ ${c.assinado_nome.substring(0,20)}</span>`
+            : `<span class="badge badge-gray">Pendente</span>`}
+        </td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-blue btn-sm" onclick="gerarContrato(${c.venda_id})">📄 Ver</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirUploadAssinado(${c.id}, '${c.assinado_nome||''}', '${c.assinado_em||''}')">📎 Assinado</button>
+        </td>
       </tr>`).join('');
   } catch (err) {
     toast('Erro ao carregar contratos', 'error');
@@ -2036,6 +2169,239 @@ function reaisExtenso(valor) {
 function numPorExtenso(n) {
   const e=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte','vinte e um','vinte e dois','vinte e três','vinte e quatro'];
   return e[n] || n;
+}
+
+// ─── COBRANÇAS ──────────────────────────────────────────
+let _todasCobrancas = [];
+
+async function renderCobrancas() {
+  try {
+    // Stats
+    const stats = await api('GET', '/parcelas/cobrancas/stats');
+    if (stats) {
+      document.getElementById('cob-recebido').textContent = fmtMoeda(stats.valor_recebido);
+      document.getElementById('cob-areceber').textContent = fmtMoeda(stats.valor_a_receber);
+      document.getElementById('cob-vencido').textContent = fmtMoeda(stats.valor_vencido);
+      document.getElementById('cob-pagas').textContent = `${stats.total_pago} parcela(s) paga(s)`;
+      document.getElementById('cob-pendentes').textContent = `${stats.total_pendente} parcela(s) pendente(s)`;
+      document.getElementById('cob-vencidas').textContent = `${stats.total_vencido} parcela(s) vencida(s)`;
+    }
+
+    // Tabela
+    if (!_todasCobrancas.length) {
+      _todasCobrancas = await api('GET', '/parcelas/cobrancas') || [];
+    } else {
+      _todasCobrancas = await api('GET', '/parcelas/cobrancas') || [];
+    }
+
+    const busca  = (document.getElementById('search-cobrancas')?.value || '').toLowerCase();
+    const filtro = document.getElementById('filter-cob-status')?.value || '';
+
+    let lista = _todasCobrancas.filter(p => {
+      const ok_busca = !busca || p.cliente_nome.toLowerCase().includes(busca);
+      const ok_status = !filtro || p.status_calc === filtro;
+      return ok_busca && ok_status;
+    });
+
+    const tb = document.getElementById('cobrancas-table');
+    if (!lista.length) {
+      tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💰</div><div class="empty-title">Nenhuma cobrança encontrada</div></div></td></tr>`;
+      return;
+    }
+
+    const badgeStatus = {
+      'pago':        'badge-green',
+      'vencido':     'badge-red',
+      'vence_hoje':  'badge-yellow',
+      'vence_semana':'badge-yellow',
+      'pendente':    'badge-gray',
+      'cancelado':   'badge-gray'
+    };
+    const labelStatus = {
+      'pago':        'Pago',
+      'vencido':     'Vencido',
+      'vence_hoje':  'Vence hoje',
+      'vence_semana':'Vence em breve',
+      'pendente':    'Pendente',
+      'cancelado':   'Cancelado'
+    };
+
+    tb.innerHTML = lista.map(p => `
+      <tr>
+        <td class="td-name">${p.cliente_nome}<br><span style="font-size:11px;color:var(--text3);">${p.cliente_tel||''}</span></td>
+        <td class="td-mono">#${String(p.venda_num).padStart(4,'0')}</td>
+        <td style="font-size:13px;">${p.numero === 0 ? 'Entrada' : `${p.numero}ª parcela`}</td>
+        <td style="font-weight:600;color:var(--text);">${fmtMoeda(p.valor)}</td>
+        <td style="font-size:13px;${p.status_calc==='vencido'?'color:var(--red);font-weight:500;':''}">${fmtData(p.data_vencimento)}</td>
+        <td style="font-size:13px;color:var(--text2);">${p.data_pagamento ? fmtData(p.data_pagamento) : '—'}</td>
+        <td><span class="badge ${badgeStatus[p.status_calc]||'badge-gray'}">${labelStatus[p.status_calc]||p.status_calc}</span></td>
+        <td style="display:flex;gap:6px;">
+          ${p.status !== 'pago' && p.status !== 'cancelado'
+            ? `<button class="btn btn-primary btn-sm" onclick="registrarPagamento(${p.id})">✓ Pago</button>`
+            : `<button class="btn btn-secondary btn-sm" onclick="estornarPagamento(${p.id})">↩ Estornar</button>`}
+          <button class="btn btn-secondary btn-sm" onclick="verParcelasVenda(${p.venda_id})">Ver todas</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    toast('Erro ao carregar cobranças: ' + err.message, 'error');
+  }
+}
+
+async function registrarPagamento(parcelaId) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const data = prompt('Data do pagamento (YYYY-MM-DD):', hoje);
+  if (data === null) return;
+  try {
+    await api('PATCH', `/parcelas/${parcelaId}/pagar`, { data_pagamento: data });
+    toast('Pagamento registrado!');
+    _todasCobrancas = [];
+    renderCobrancas();
+  } catch (err) {
+    toast(err.message || 'Erro ao registrar pagamento', 'error');
+  }
+}
+
+async function estornarPagamento(parcelaId) {
+  if (!confirm('Estornar este pagamento? A parcela voltará para pendente.')) return;
+  try {
+    await api('PATCH', `/parcelas/${parcelaId}/estornar`, {});
+    toast('Pagamento estornado.');
+    _todasCobrancas = [];
+    renderCobrancas();
+  } catch (err) {
+    toast(err.message || 'Erro ao estornar', 'error');
+  }
+}
+
+async function verParcelasVenda(vendaId) {
+  try {
+    const parcelas = await api('GET', `/parcelas/venda/${vendaId}`);
+    if (!parcelas) return;
+    document.getElementById('parcelas-modal-title').textContent = `Parcelas — Venda #${String(vendaId).padStart(4,'0')}`;
+    const clienteNome = parcelas[0]?.cliente_nome || '';
+    document.getElementById('parcelas-modal-sub').textContent = clienteNome;
+
+    const badgeP = { 'pago':'badge-green','vencido':'badge-red','pendente':'badge-gray','cancelado':'badge-gray' };
+    const tb = document.getElementById('parcelas-detalhe-table');
+    tb.innerHTML = parcelas.map(p => `
+      <tr>
+        <td style="font-size:13px;">${p.numero === 0 ? '<strong>Entrada</strong>' : `${p.numero}ª parcela`}</td>
+        <td style="font-weight:600;">${fmtMoeda(p.valor)}</td>
+        <td style="${p.status==='vencido'?'color:var(--red);':''}">${fmtData(p.data_vencimento)}</td>
+        <td style="color:var(--text2);">${p.data_pagamento ? fmtData(p.data_pagamento) : '—'}</td>
+        <td><span class="badge ${badgeP[p.status]||'badge-gray'}">${p.status}</span></td>
+        <td>
+          ${p.status !== 'pago' && p.status !== 'cancelado'
+            ? `<button class="btn btn-primary btn-sm" onclick="registrarPagamento(${p.id});closeModal('modal-parcelas');renderCobrancas();">✓ Pago</button>`
+            : `<button class="btn btn-secondary btn-sm" onclick="estornarPagamento(${p.id});closeModal('modal-parcelas');renderCobrancas();">↩</button>`}
+        </td>
+      </tr>`).join('');
+    openModal('modal-parcelas');
+  } catch (err) {
+    toast('Erro ao buscar parcelas', 'error');
+  }
+}
+
+// ─── CONTRATO ASSINADO ───────────────────────────────────
+let _uploadAssinadoBase64 = null;
+let _uploadAssinadoNome   = null;
+
+function abrirUploadAssinado(contratoId, nomeAtual, dataAtual) {
+  document.getElementById('upload-contrato-id').value = contratoId;
+  _uploadAssinadoBase64 = null;
+  _uploadAssinadoNome   = null;
+  document.getElementById('assinado-preview').style.display = 'none';
+  document.getElementById('btn-salvar-assinado').style.display = 'none';
+  document.getElementById('input-assinado').value = '';
+
+  if (nomeAtual) {
+    document.getElementById('assinado-atual').style.display = 'block';
+    document.getElementById('assinado-nome-atual').textContent = nomeAtual;
+    document.getElementById('assinado-data-atual').textContent = dataAtual ? 'Enviado em ' + fmtData(dataAtual) : '';
+  } else {
+    document.getElementById('assinado-atual').style.display = 'none';
+  }
+  openModal('modal-upload-assinado');
+}
+
+function selecionarAssinado(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { toast('Arquivo muito grande. Máximo 10MB.', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    _uploadAssinadoBase64 = e.target.result;
+    _uploadAssinadoNome   = file.name;
+    document.getElementById('assinado-preview-nome').textContent = file.name;
+    document.getElementById('assinado-preview-size').textContent = (file.size / 1024).toFixed(0) + ' KB';
+    document.getElementById('assinado-preview').style.display = 'flex';
+    document.getElementById('btn-salvar-assinado').style.display = 'inline-flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleAssinadoDrop(event) {
+  event.preventDefault();
+  event.currentTarget.style.borderColor = 'var(--border)';
+  const file = event.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.pdf')) { toast('Apenas arquivos PDF são aceitos', 'error'); return; }
+  const fakeInput = { files: [file] };
+  selecionarAssinado(fakeInput);
+}
+
+function limparAssinado() {
+  _uploadAssinadoBase64 = null;
+  _uploadAssinadoNome   = null;
+  document.getElementById('assinado-preview').style.display = 'none';
+  document.getElementById('btn-salvar-assinado').style.display = 'none';
+  document.getElementById('input-assinado').value = '';
+}
+
+async function salvarAssinado() {
+  if (!_uploadAssinadoBase64) return;
+  const contratoId = document.getElementById('upload-contrato-id').value;
+  const btn = document.getElementById('btn-salvar-assinado');
+  loading(btn, true);
+  try {
+    await api('POST', `/contratos/${contratoId}/assinado`, {
+      base64: _uploadAssinadoBase64,
+      nome:   _uploadAssinadoNome
+    });
+    toast('Contrato assinado salvo com sucesso!');
+    closeModal('modal-upload-assinado');
+    renderContratos();
+  } catch (err) {
+    toast(err.message || 'Erro ao salvar contrato assinado', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+async function baixarAssinado() {
+  const contratoId = document.getElementById('upload-contrato-id').value;
+  try {
+    const data = await api('GET', `/contratos/${contratoId}/assinado`);
+    if (!data) return;
+    const link = document.createElement('a');
+    link.href = data.base64;
+    link.download = data.nome;
+    link.click();
+  } catch (err) {
+    toast('Erro ao baixar contrato assinado', 'error');
+  }
+}
+
+async function removerAssinado() {
+  if (!confirm('Remover o contrato assinado? Esta ação não pode ser desfeita.')) return;
+  const contratoId = document.getElementById('upload-contrato-id').value;
+  try {
+    await api('DELETE', `/contratos/${contratoId}/assinado`);
+    toast('Contrato assinado removido.');
+    closeModal('modal-upload-assinado');
+    renderContratos();
+  } catch (err) {
+    toast('Erro ao remover contrato assinado', 'error');
+  }
 }
 
 // ─── INIT ────────────────────────────────────────────────

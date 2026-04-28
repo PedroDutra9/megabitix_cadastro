@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, pool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
+const { gerarParcelas } = require('./parcelas');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -131,6 +132,9 @@ router.post('/', async (req, res) => {
         ['vendido', item.serial_id]
       );
     }
+
+    // Gera parcelas se for venda parcelada
+    await gerarParcelas(client, venda.id);
 
     await client.query('COMMIT');
     res.status(201).json(venda);
