@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  # ─── PostgreSQL ───────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: megabitix_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-megabitix}
+      POSTGRES_USER: ${POSTGRES_USER:-megabitix}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-megabitix123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-megabitix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Backend (Node.js + Express) ─────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: megabitix_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-megabitix}:${POSTGRES_PASSWORD:-megabitix123}@postgres:5432/${POSTGRES_DB:-megabitix}
+      JWT_SECRET: ${JWT_SECRET:-megabitix_jwt_secret_troque_em_producao}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # ─── Frontend (Nginx servindo HTML estático) ──────────────
+  frontend:
+    image: nginx:alpine
+    container_name: megabitix_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/public:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local

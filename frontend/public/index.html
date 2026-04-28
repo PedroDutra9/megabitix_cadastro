@@ -1,0 +1,2045 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Megabitix — Sistema de Gestão Comercial</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --bg4: #21263385;
+    --border: #2a3040;
+    --border2: #3a4560;
+    --accent: #00e5a0;
+    --accent2: #00b87d;
+    --accent-dim: rgba(0,229,160,0.12);
+    --blue: #4a9eff;
+    --blue-dim: rgba(74,158,255,0.12);
+    --red: #ff5555;
+    --red-dim: rgba(255,85,85,0.12);
+    --yellow: #ffcc44;
+    --yellow-dim: rgba(255,204,68,0.12);
+    --text: #e8ecf4;
+    --text2: #8892a4;
+    --text3: #4a5568;
+    --radius: 10px;
+    --radius2: 6px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+  /* Sidebar */
+  #sidebar {
+    width: 220px; min-height: 100vh; background: var(--bg2);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+  }
+  .logo-area { padding: 24px 20px 20px; border-bottom: 1px solid var(--border); }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .logo-icon svg { width: 20px; height: 20px; }
+  .logo-name { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .logo-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  nav { flex: 1; padding: 16px 12px; }
+  .nav-section { margin-bottom: 20px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 1px; padding: 0 8px; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius2);
+    cursor: pointer; color: var(--text2); font-size: 13.5px; font-weight: 400; transition: all 0.15s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: var(--accent-dim); color: var(--accent); }
+  .nav-item svg { width: 16px; height: 16px; opacity: 0.8; flex-shrink: 0; }
+  .nav-item.active svg { opacity: 1; }
+
+  .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-dim);
+    display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .user-name { font-size: 13px; color: var(--text2); }
+
+  /* Main */
+  #main { margin-left: 220px; flex: 1; min-height: 100vh; }
+  .page { display: none; padding: 32px; }
+  .page.active { display: block; }
+
+  /* Header */
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 3px; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px; border-radius: var(--radius2);
+    font-size: 13.5px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none; font-family: var(--font); }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--border2); }
+  .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,85,85,0.2); }
+  .btn-danger:hover { background: rgba(255,85,85,0.2); }
+  .btn-blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(74,158,255,0.2); }
+  .btn-blue:hover { background: rgba(74,158,255,0.2); }
+  .btn-sm { padding: 6px 12px; font-size: 12.5px; }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 14px; font-weight: 500; color: var(--text); }
+
+  /* Stats */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .stat-label { font-size: 11.5px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .stat-value { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .stat-card.accent .stat-value { color: var(--accent); }
+  .stat-card.blue .stat-value { color: var(--blue); }
+  .stat-card.yellow .stat-value { color: var(--yellow); }
+  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 6px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text2); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); color: var(--text); }
+  .td-name { color: var(--text); font-weight: 500; }
+  .td-mono { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+
+  /* Badge */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 500; }
+  .badge-green { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+  .badge-gray { background: var(--bg3); color: var(--text2); }
+  .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Forms */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1/-1; }
+  label { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.4px; }
+  input, select, textarea {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2);
+    color: var(--text); font-family: var(--font); font-size: 14px; padding: 9px 12px;
+    outline: none; transition: border-color 0.15s; width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: var(--bg2); }
+  textarea { resize: vertical; min-height: 80px; }
+  .form-section-title { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.8px; grid-column: 1/-1; padding-top: 8px; margin-top: 4px; border-top: 1px solid var(--border); }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    z-index: 500; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+    width: 700px; max-height: 90vh; overflow-y: auto; padding: 28px; position: relative; }
+  .modal-lg { width: 860px; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .modal-title { font-size: 17px; font-weight: 600; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; background: var(--bg3); border: 1px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text2); font-size: 16px; }
+  .modal-close:hover { color: var(--text); }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast-item { padding: 12px 18px; border-radius: 8px; font-size: 13.5px; font-weight: 500;
+    background: var(--bg2); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateX(100%); transition: transform 0.3s ease; max-width: 320px; }
+  .toast-item.show { transform: translateX(0); }
+  .toast-item.success { border-color: var(--accent); color: var(--accent); }
+  .toast-item.error { border-color: var(--red); color: var(--red); }
+  .toast-item.info { border-color: var(--blue); color: var(--blue); }
+
+  /* Search */
+  .search-bar { display: flex; gap: 10px; margin-bottom: 18px; }
+  .search-input { flex: 1; }
+  .search-filters { display: flex; gap: 8px; }
+  .search-filters select { min-width: 140px; }
+
+  /* Product list in sale */
+  .product-list { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .product-row { display: grid; grid-template-columns: 1fr 180px 100px 80px; align-items: center;
+    padding: 10px 14px; border-bottom: 1px solid var(--border); gap: 10px; }
+  .product-row:last-child { border-bottom: none; }
+  .product-row.header { background: var(--bg3); font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; }
+  .product-row:hover:not(.header) { background: var(--bg3); }
+
+  /* Payment info box */
+  .info-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius2); padding: 14px 16px; margin-top: 12px; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13.5px; }
+  .info-row strong { font-weight: 600; color: var(--text); }
+  .info-row.total { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; font-size: 15px; }
+
+  /* Empty state */
+  .empty-state { text-align: center; padding: 60px 20px; }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-title { font-size: 16px; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* Contract preview */
+  .contract-preview { background: #fff; color: #222; padding: 50px 60px; border-radius: var(--radius); font-family: 'Times New Roman', serif;
+    font-size: 13px; line-height: 1.8; max-height: 500px; overflow-y: auto; }
+  .contract-preview h1 { font-size: 16px; text-align: center; text-transform: uppercase; margin-bottom: 6px; }
+  .contract-preview h2 { font-size: 14px; text-transform: uppercase; margin: 20px 0 8px; }
+  .contract-preview p { margin-bottom: 10px; text-align: justify; }
+  .contract-preview .sig-area { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 60px; }
+  .contract-preview .sig-line { border-top: 1px solid #333; padding-top: 6px; text-align: center; font-size: 12px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo-area">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+      </svg>
+    </div>
+    <div class="logo-name">Megabitix</div>
+    <div class="logo-sub">Gestão Comercial</div>
+  </div>
+  <nav>
+    <div class="nav-section">
+      <div class="nav-label">Principal</div>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('vendas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Vendas
+      </div>
+      <div class="nav-item" onclick="showPage('contratos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Contratos
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Cadastros</div>
+      <div class="nav-item" onclick="showPage('clientes')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Clientes
+      </div>
+      <div class="nav-item" onclick="showPage('produtos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        Produtos
+      </div>
+      <div class="nav-item" onclick="showPage('estoque')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        Estoque
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:10px;" id="admin-nav-item" style="display:none;">
+      <div class="nav-item" onclick="abrirUsuarios()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="23" y2="17"/><line x1="20" y1="14" x2="26" y2="14"/></svg>
+        Usuários
+      </div>
+    </div>
+    <div class="user-info" style="cursor:pointer;" onclick="openModal('modal-minha-conta');abrirMinhaConta()">
+      <div class="user-avatar" id="sidebar-avatar">?</div>
+      <div>
+        <div style="font-size:13px;color:var(--text);" id="sidebar-nome">Carregando...</div>
+        <div style="font-size:11px;color:var(--text3);" id="sidebar-perfil"></div>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border-radius:6px;border:1px dashed var(--border);margin-top:8px;font-size:12px;color:var(--text2);" title="Logo usada nos contratos PDF">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <span id="logo-label">Logo do contrato</span>
+      <input type="file" accept="image/*" style="display:none;" onchange="carregarLogo(this)">
+    </label>
+    <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center;margin-top:8px;" onclick="fazerLogout()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      Sair
+    </button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Visão geral das operações comerciais</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-nova-venda')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Venda
+      </button>
+    </div>
+
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card accent">
+        <div class="stat-label">Vendas Realizadas</div>
+        <div class="stat-value" id="stat-vendas">0</div>
+        <div class="stat-sub">Total acumulado</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Faturamento</div>
+        <div class="stat-value" id="stat-fat">R$ 0</div>
+        <div class="stat-sub">Valor total vendido</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Clientes</div>
+        <div class="stat-value" id="stat-clientes">0</div>
+        <div class="stat-sub">Cadastrados</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">Produtos em Estoque</div>
+        <div class="stat-value" id="stat-estoque">0</div>
+        <div class="stat-sub">Disponíveis</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Últimas Vendas</span>
+        <button class="btn btn-secondary btn-sm" onclick="showPage('vendas')">Ver todas</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Cliente</th><th>Produtos</th><th>Valor</th><th>Pagamento</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="dashboard-vendas-table"><tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Nenhuma venda registrada</div></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div class="page" id="page-clientes">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Clientes</div>
+        <div class="page-sub">Gerenciamento de cadastros</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-cliente')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Cliente
+      </button>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por nome, CNPJ/CPF..." class="search-input" id="search-clientes" oninput="renderClientes()">
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome/Razão Social</th><th>CNPJ/CPF</th><th>Representante</th><th>Contato</th><th>Cidade</th><th>Ações</th></tr></thead>
+          <tbody id="clientes-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUTOS -->
+  <div class="page" id="page-produtos">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Produtos</div>
+        <div class="page-sub">Catálogo e números de série</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-produto')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Produto
+      </button>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por nome, marca, categoria..." class="search-input" id="search-produtos" oninput="renderProdutos()">
+      <div class="search-filters">
+        <select id="filter-categoria" onchange="renderProdutos()">
+          <option value="">Todas categorias</option>
+          <option>Roteador</option><option>Servidor</option><option>CGNAT</option>
+          <option>Switch</option><option>Firewall</option><option>Outros</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Produto</th><th>Categoria</th><th>Marca</th><th>Modelo</th><th>Nº de Série</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="produtos-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESTOQUE -->
+  <div class="page" id="page-estoque">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Controle de Estoque</div>
+        <div class="page-sub">Disponibilidade de itens e números de série</div>
+      </div>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="stat-card accent">
+        <div class="stat-label">Disponíveis</div>
+        <div class="stat-value" id="est-disp">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Vendidos</div>
+        <div class="stat-value" id="est-vend">0</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Total de Séries</div>
+        <div class="stat-value" id="est-total">0</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Produto</th><th>Categoria</th><th>Marca</th><th>Número de Série</th><th>Status</th><th>Venda Ref.</th></tr></thead>
+          <tbody id="estoque-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- VENDAS -->
+  <div class="page" id="page-vendas">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Vendas</div>
+        <div class="page-sub">Histórico e gestão de negociações</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-nova-venda')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Venda
+      </button>
+    </div>
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por cliente ou nº da venda..." class="search-input" id="search-vendas" oninput="renderVendas()">
+      <div class="search-filters">
+        <select id="filter-status-venda" onchange="renderVendas()">
+          <option value="">Todos status</option>
+          <option>Pago</option><option>Pendente</option><option>Em andamento</option>
+        </select>
+        <select id="filter-pgto-venda" onchange="renderVendas()">
+          <option value="">Todos pagamentos</option>
+          <option>À vista</option><option>Cartão de crédito</option><option>Parcelado</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Cliente</th><th>Produtos</th><th>Valor Total</th><th>Pagamento</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="vendas-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRATOS -->
+  <div class="page" id="page-contratos">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Contratos</div>
+        <div class="page-sub">Histórico de contratos gerados</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº Contrato</th><th>Venda Ref.</th><th>Cliente</th><th>Valor</th><th>Gerado em</th><th>Implantação</th><th>Ações</th></tr></thead>
+          <tbody id="contratos-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- Modal Cliente -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-cliente-title">Novo Cliente</div>
+      <div class="modal-close" onclick="closeModal('modal-cliente')">✕</div>
+    </div>
+    <input type="hidden" id="cliente-edit-id">
+    <div class="form-grid">
+      <div class="form-group full"><label>Nome / Razão Social *</label><input id="c-nome" placeholder="Ex: Tech Solutions Ltda."></div>
+      <div class="form-group"><label>CNPJ / CPF *</label><input id="c-doc" placeholder="00.000.000/0001-00" oninput="maskDoc(this)"></div>
+      <div class="form-group"><label>Telefone</label><input id="c-tel" placeholder="(11) 99999-9999" oninput="maskTel(this)"></div>
+      <div class="form-group full"><label>E-mail</label><input id="c-email" type="email" placeholder="contato@empresa.com"></div>
+      <div class="form-section-title">Endereço</div>
+      <div class="form-group"><label>CEP</label><input id="c-cep" placeholder="00000-000"></div>
+      <div class="form-group"><label>Logradouro</label><input id="c-rua" placeholder="Rua das Flores"></div>
+      <div class="form-group"><label>Número</label><input id="c-num" placeholder="123"></div>
+      <div class="form-group"><label>Complemento</label><input id="c-comp" placeholder="Sala 5"></div>
+      <div class="form-group"><label>Bairro</label><input id="c-bairro" placeholder="Centro"></div>
+      <div class="form-group"><label>Cidade</label><input id="c-cidade" placeholder="São Paulo"></div>
+      <div class="form-group"><label>Estado</label><select id="c-estado"><option value="">UF</option>
+        <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option selected>SP</option><option>SE</option><option>TO</option>
+      </select></div>
+      <div class="form-section-title">Representante Legal</div>
+      <div class="form-group"><label>Nome do Representante</label><input id="c-rep" placeholder="João da Silva"></div>
+      <div class="form-group"><label>CPF do Representante</label><input id="c-cpf-rep" placeholder="000.000.000-00" oninput="maskCPF(this)"></div>
+      <div class="form-group"><label>Cargo</label><input id="c-cargo-rep" placeholder="Diretor Administrativo"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCliente()">Salvar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Produto -->
+<div class="modal-overlay" id="modal-produto">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-prod-title">Novo Produto</div>
+      <div class="modal-close" onclick="closeModal('modal-produto')">✕</div>
+    </div>
+    <input type="hidden" id="prod-edit-id">
+    <div class="form-grid">
+      <div class="form-group full"><label>Nome do Produto *</label><input id="p-nome" placeholder="Ex: Roteador Cisco ASR 1001-X"></div>
+      <div class="form-group"><label>Categoria *</label>
+        <select id="p-categoria">
+          <option value="">Selecione...</option>
+          <option>Roteador</option><option>Servidor</option><option>CGNAT</option>
+          <option>Switch</option><option>Firewall</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Marca</label>
+        <select id="p-marca">
+          <option value="">Selecione...</option>
+          <option>Cisco</option><option>Dell</option><option>A10 Networks</option>
+          <option>Huawei</option><option>Juniper</option><option>Mikrotik</option><option>Outros</option>
+        </select>
+      </div>
+      <div class="form-group full"><label>Modelo</label><input id="p-modelo" placeholder="Ex: ASR 1001-X"></div>
+      <div class="form-group full"><label>Descrição</label><textarea id="p-desc" placeholder="Detalhes técnicos do produto..."></textarea></div>
+      <div class="form-section-title">Números de Série</div>
+      <div class="form-group full">
+        <label>Adicionar Número de Série</label>
+        <div style="display:flex;gap:8px">
+          <input id="p-serial-input" placeholder="Ex: SN-2024-001">
+          <button class="btn btn-secondary" onclick="addSerial()">Adicionar</button>
+        </div>
+      </div>
+      <div class="form-group full" id="seriais-lista-wrap">
+        <div id="seriais-lista" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-produto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarProduto()">Salvar Produto</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nova Venda -->
+<div class="modal-overlay" id="modal-nova-venda">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">Nova Venda</div>
+      <div class="modal-close" onclick="closeModal('modal-nova-venda')">✕</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Cliente *</label>
+        <select id="v-cliente">
+          <option value="">Selecione o cliente...</option>
+        </select>
+      </div>
+      <div class="form-section-title">Produtos</div>
+      <div class="form-group full">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="v-prod-select" style="flex:1;">
+            <option value="">Selecionar produto...</option>
+          </select>
+          <select id="v-serial-select" style="flex:1;">
+            <option value="">Selecionar série...</option>
+          </select>
+          <button class="btn btn-secondary" onclick="addProdutoVenda()">+ Adicionar</button>
+        </div>
+      </div>
+      <div class="form-group full" id="venda-produtos-area">
+        <div class="product-list">
+          <div class="product-row header">
+            <span>Produto</span><span>Nº de Série</span><span>Valor Unit.</span><span>Ação</span>
+          </div>
+          <div id="venda-produtos-lista">
+            <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Nenhum produto adicionado</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Valor Total da Venda (R$) *</label>
+        <input type="number" id="v-valor" placeholder="0,00" oninput="calcParcelas()">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="v-status">
+          <option>Pendente</option><option>Em andamento</option><option>Pago</option>
+        </select>
+      </div>
+      <div class="form-section-title">Pagamento</div>
+      <div class="form-group full">
+        <label>Forma de Pagamento</label>
+        <select id="v-pgto" onchange="togglePgto()">
+          <option value="À vista">À vista</option>
+          <option value="Cartão de crédito">Cartão de crédito</option>
+          <option value="Parcelado">Parcelado (Entrada + Parcelas)</option>
+        </select>
+      </div>
+      <div id="pgto-parcelado" style="display:none;grid-column:1/-1;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Valor da Entrada (R$)</label>
+            <input type="number" id="v-entrada" placeholder="0,00" oninput="calcParcelas()">
+          </div>
+          <div class="form-group">
+            <label>Número de Parcelas</label>
+            <input type="number" id="v-parcelas" min="1" max="60" placeholder="12" oninput="calcParcelas()">
+          </div>
+          <div class="form-group">
+            <label>Dia de Vencimento</label>
+            <input type="number" id="v-dia-venc" min="1" max="28" placeholder="22" oninput="calcParcelas()">
+          </div>
+        </div>
+        <div class="info-box" id="resumo-parcelas" style="display:none;">
+          <div class="info-row"><span>Valor total</span><strong id="rp-total"></strong></div>
+          <div class="info-row"><span>Entrada</span><strong id="rp-entrada"></strong></div>
+          <div class="info-row"><span>Saldo restante</span><strong id="rp-saldo"></strong></div>
+          <div class="info-row total"><span id="rp-n-parc">0</span> parcelas de</span><strong id="rp-parc-val"></strong></div>
+        </div>
+      </div>
+      <div class="form-section-title">Implantação</div>
+      <div class="form-group full">
+        <label>Haverá implantação?</label>
+        <select id="v-implantacao" onchange="toggleImplantacao()">
+          <option value="nao">Não</option>
+          <option value="sim">Sim</option>
+        </select>
+      </div>
+      <div id="implantacao-area" style="display:none;grid-column:1/-1;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Data da Implantação</label>
+            <input type="date" id="v-impl-data">
+          </div>
+          <div class="form-group full">
+            <label>Descrição dos Serviços</label>
+            <textarea id="v-impl-desc" placeholder="Descreva os serviços de implantação..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nova-venda')">Cancelar</button>
+      <button class="btn btn-primary" onclick="registrarVenda()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Registrar Venda
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Contrato Preview -->
+<div class="modal-overlay" id="modal-contrato">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">Contrato de Compra e Venda</div>
+      <div class="modal-close" onclick="closeModal('modal-contrato')">✕</div>
+    </div>
+    <div class="contract-preview" id="contrato-preview-area"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-contrato')">Fechar</button>
+      <button class="btn btn-primary" onclick="downloadContratoPDF()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Baixar PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TELA DE LOGIN ===== -->
+<div id="login-screen" style="
+  display:none; position:fixed; inset:0; z-index:9000;
+  background:var(--bg); align-items:center; justify-content:center; flex-direction:column;
+">
+  <div style="width:380px;">
+    <div style="text-align:center; margin-bottom:32px;">
+      <div style="width:52px;height:52px;background:var(--accent);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <div style="font-size:22px;font-weight:600;letter-spacing:-0.5px;">Megabitix</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px;">Gestão Comercial — Acesso Restrito</div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:28px;">
+      <div id="login-error" style="display:none;background:var(--red-dim);border:1px solid rgba(255,85,85,0.3);color:var(--red);padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px;"></div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>E-mail</label>
+        <input id="login-email" type="email" placeholder="admin@megabitix.com.br" autocomplete="username">
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label>Senha</label>
+        <div style="position:relative;">
+          <input id="login-senha" type="password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter') fazerLogin()" style="padding-right:40px;">
+          <span onclick="toggleSenhaVis('login-senha', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:16px;user-select:none;">👁</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="fazerLogin()" id="login-btn">
+        Entrar
+      </button>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3);">
+      Megabitix Soluções em Conectividade Ltda · CNPJ 61.732.794/0001-72
+    </div>
+  </div>
+</div>
+
+<!-- Modal Usuários (admin only) -->
+<div class="modal-overlay" id="modal-usuarios">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Gestão de Usuários</div>
+      <div class="modal-close" onclick="closeModal('modal-usuarios')">✕</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Nome</th>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">E-mail</th>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Perfil</th>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);">Status</th>
+          <th style="padding:8px 10px;border-bottom:1px solid var(--border);"></th>
+        </tr></thead>
+        <tbody id="usuarios-table-body"></tbody>
+      </table>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:18px;">
+      <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">Novo Usuário</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nome</label><input id="nu-nome" placeholder="João Silva"></div>
+        <div class="form-group"><label>E-mail</label><input id="nu-email" type="email" placeholder="joao@megabitix.com.br"></div>
+        <div class="form-group">
+          <label>Senha</label>
+          <div style="position:relative;">
+            <input id="nu-senha" type="password" placeholder="Mínimo 6 caracteres" style="padding-right:36px;">
+            <span onclick="toggleSenhaVis('nu-senha',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);">👁</span>
+          </div>
+        </div>
+        <div class="form-group"><label>Perfil</label>
+          <select id="nu-perfil"><option value="vendedor">Vendedor</option><option value="admin">Admin</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-usuarios')">Fechar</button>
+      <button class="btn btn-primary" onclick="criarUsuario()">Criar Usuário</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Minha Conta / Trocar Senha -->
+<div class="modal-overlay" id="modal-minha-conta">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Minha Conta</div>
+      <div class="modal-close" onclick="closeModal('modal-minha-conta')">✕</div>
+    </div>
+    <div id="minha-conta-info" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px;font-size:13.5px;"></div>
+    <div style="font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text);">Trocar Senha</div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Senha Atual</label>
+      <input id="mc-senha-atual" type="password" placeholder="••••••••">
+    </div>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label>Nova Senha</label>
+      <input id="mc-nova-senha" type="password" placeholder="Mínimo 6 caracteres">
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label>Confirmar Nova Senha</label>
+      <input id="mc-confirma-senha" type="password" placeholder="Repita a nova senha">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-minha-conta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="trocarSenha()">Salvar Nova Senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MEGABITIX — Frontend JS com integração à API REST
+// ═══════════════════════════════════════════════════════
+
+const API = '/api';
+let AUTH = { token: null, user: null };
+let _nContrato = 1;
+let contratoAtual = null;
+let _logoBase64 = null; // Logo carregada em memória para o contrato
+
+// ─── API Helper ─────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (AUTH.token) opts.headers['Authorization'] = 'Bearer ' + AUTH.token;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  if (res.status === 401) { fazerLogout(); return null; }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Erro desconhecido');
+  return data;
+}
+
+// ─── Utils ──────────────────────────────────────────────
+function fmtMoeda(v) { return 'R$ ' + Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+function fmtData(d) {
+  if (!d) return '—';
+  const dt = new Date(d + (d.includes('T') ? '' : 'T12:00:00'));
+  return dt.toLocaleDateString('pt-BR');
+}
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.classList.add('show'), 50);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 400); }, 3500);
+}
+
+function loading(btn, on) {
+  if (!btn) return;
+  if (on) { btn.dataset.orig = btn.textContent; btn.textContent = 'Aguarde...'; btn.disabled = true; }
+  else { btn.textContent = btn.dataset.orig || btn.textContent; btn.disabled = false; }
+}
+
+function maskDoc(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length <= 11) v = v.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  else v = v.replace(/(\d{2})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1/$2').replace(/(\d{4})(\d)/,'$1-$2');
+  el.value = v.substring(0,18);
+}
+function maskTel(el) {
+  let v = el.value.replace(/\D/g,'').replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2');
+  el.value = v.substring(0,15);
+}
+function maskCPF(el) {
+  let v = el.value.replace(/\D/g,'').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  el.value = v.substring(0,14);
+}
+function toggleSenhaVis(id, btn) {
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+// ─── AUTH ───────────────────────────────────────────────
+function mostrarLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('sidebar').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+}
+function mostrarApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
+  atualizarSidebar();
+}
+function atualizarSidebar() {
+  const u = AUTH.user;
+  if (!u) return;
+  const ini = (u.nome||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('sidebar-avatar').textContent = ini;
+  document.getElementById('sidebar-nome').textContent = u.nome;
+  document.getElementById('sidebar-perfil').textContent = u.perfil === 'admin' ? '⚡ Admin' : '👤 Vendedor';
+  // Mostrar menu usuários só para admin
+  const adminNav = document.getElementById('admin-nav-item');
+  if (adminNav) adminNav.style.display = u.perfil === 'admin' ? 'block' : 'none';
+}
+
+async function fazerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errEl.style.display = 'none';
+  if (!email || !senha) { errEl.textContent = 'Preencha e-mail e senha.'; errEl.style.display='block'; return; }
+  loading(btn, true);
+  try {
+    const data = await api('POST', '/auth/login', { email, senha });
+    if (!data) return;
+    AUTH.token = data.token;
+    AUTH.user = data.user;
+    localStorage.setItem('mbx_token', data.token);
+    localStorage.setItem('mbx_user', JSON.stringify(data.user));
+    mostrarApp();
+    showPage('dashboard');
+  } catch (err) {
+    errEl.textContent = err.message || 'Credenciais inválidas.';
+    errEl.style.display = 'block';
+  } finally {
+    loading(btn, false);
+  }
+}
+
+function fazerLogout() {
+  AUTH = { token: null, user: null };
+  localStorage.removeItem('mbx_token');
+  localStorage.removeItem('mbx_user');
+  mostrarLogin();
+}
+
+function carregarLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    _logoBase64 = e.target.result;
+    document.getElementById('logo-label').textContent = '✓ ' + file.name.substring(0, 18);
+    toast('Logo carregada! Será incluída nos próximos contratos.');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function verificarSessao() {
+  const token = localStorage.getItem('mbx_token');
+  const user = localStorage.getItem('mbx_user');
+  if (!token || !user) { mostrarLogin(); return; }
+  AUTH.token = token;
+  AUTH.user = JSON.parse(user);
+  // Valida token com o servidor
+  try {
+    const me = await api('GET', '/auth/me');
+    if (!me) return;
+    AUTH.user = me;
+    localStorage.setItem('mbx_user', JSON.stringify(me));
+    mostrarApp();
+    showPage('dashboard');
+  } catch {
+    mostrarLogin();
+  }
+}
+
+// ─── NAVEGAÇÃO ──────────────────────────────────────────
+function showPage(page, evt) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + page + "'")) n.classList.add('active');
+  });
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'clientes')  renderClientes();
+  if (page === 'produtos')  renderProdutos();
+  if (page === 'vendas')    renderVendas();
+  if (page === 'contratos') renderContratos();
+  if (page === 'estoque')   renderEstoque();
+}
+
+// ─── MODALS ─────────────────────────────────────────────
+function openModal(id) {
+  if (id === 'modal-nova-venda') prepVendaModal();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ─── DASHBOARD ──────────────────────────────────────────
+async function renderDashboard() {
+  try {
+    const stats = await api('GET', '/vendas/dashboard/stats');
+    if (!stats) return;
+    document.getElementById('stat-vendas').textContent = stats.total_vendas ?? 0;
+    document.getElementById('stat-fat').textContent = fmtMoeda(stats.faturamento_total ?? 0);
+    document.getElementById('stat-clientes').textContent = stats.total_clientes ?? 0;
+    document.getElementById('stat-estoque').textContent = stats.disponiveis ?? 0;
+
+    const vendas = await api('GET', '/vendas');
+    if (!vendas) return;
+    renderVendasTable(vendas.slice(0, 10), 'dashboard-vendas-table', true);
+  } catch (err) {
+    console.error('Erro dashboard:', err);
+  }
+}
+
+function renderVendasTable(list, tbId, compact=false) {
+  const tb = document.getElementById(tbId);
+  if (!list || !list.length) {
+    tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Nenhuma venda registrada</div></div></td></tr>`;
+    return;
+  }
+  tb.innerHTML = list.map(v => `
+    <tr>
+      <td class="td-mono">#${String(v.id).padStart(4,'0')}</td>
+      <td class="td-name">${v.cliente_nome || '—'}</td>
+      <td style="font-size:12px;">${v.qtd_itens ?? 0} item(ns)</td>
+      <td style="color:var(--accent);font-weight:600;">${fmtMoeda(v.valor_total)}</td>
+      <td><span class="badge badge-gray">${v.forma_pagamento}</span></td>
+      <td><span class="badge ${v.status==='Pago'?'badge-green':v.status==='Pendente'?'badge-yellow':'badge-blue'}">${v.status}</span></td>
+      <td>${fmtData(v.data_venda)}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-blue btn-sm" onclick="gerarContrato(${v.id})">📄 Contrato</button>
+        ${!compact ? `<button class="btn btn-secondary btn-sm" onclick="ciclarStatus(${v.id}, '${v.status}')">Status</button>
+        <button class="btn btn-danger btn-sm" onclick="cancelarVenda(${v.id}, '${(v.cliente_nome||'').replace(/'/g,'')}')" title="Cancelar venda e devolver ao estoque">✕ Cancelar</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+// ─── CLIENTES ───────────────────────────────────────────
+let clienteEditId = null;
+let _clientes = [];
+
+async function renderClientes() {
+  try {
+    const busca = document.getElementById('search-clientes')?.value || '';
+    _clientes = await api('GET', `/clientes${busca ? '?busca='+encodeURIComponent(busca) : ''}`);
+    const tb = document.getElementById('clientes-table');
+    if (!_clientes?.length) {
+      tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">Nenhum cliente encontrado</div></div></td></tr>`;
+      return;
+    }
+    tb.innerHTML = _clientes.map(c => `
+      <tr>
+        <td class="td-name">${c.nome}</td>
+        <td class="td-mono">${c.doc}</td>
+        <td>${c.rep || '—'}</td>
+        <td>${c.tel || ''} ${c.email ? `<br><span style="font-size:12px;color:var(--text3)">${c.email}</span>` : ''}</td>
+        <td>${c.cidade || ''}${c.estado ? ' - ' + c.estado : ''}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="openClienteEdit(${c.id})">Editar</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    toast('Erro ao carregar clientes', 'error');
+  }
+}
+
+function openClienteEdit(id) {
+  const c = _clientes.find(x => x.id === id);
+  if (!c) return;
+  clienteEditId = id;
+  document.getElementById('modal-cliente-title').textContent = 'Editar Cliente';
+  ['nome','doc','tel','email','cep','rua','num','comp','bairro','cidade','rep','cpf_rep','cargo_rep'].forEach(f => {
+    const el = document.getElementById('c-'+f);
+    if (el) el.value = c[f] || '';
+  });
+  document.getElementById('c-estado').value = c.estado || 'SP';
+  openModal('modal-cliente');
+}
+
+async function salvarCliente() {
+  const nome = document.getElementById('c-nome').value.trim();
+  const doc  = document.getElementById('c-doc').value.trim();
+  if (!nome || !doc) { toast('Preencha nome e CNPJ/CPF', 'error'); return; }
+  const body = {
+    nome, doc,
+    tel: document.getElementById('c-tel').value,
+    email: document.getElementById('c-email').value,
+    cep: document.getElementById('c-cep').value,
+    rua: document.getElementById('c-rua').value,
+    num: document.getElementById('c-num').value,
+    comp: document.getElementById('c-comp').value,
+    bairro: document.getElementById('c-bairro').value,
+    cidade: document.getElementById('c-cidade').value,
+    estado: document.getElementById('c-estado').value,
+    rep: document.getElementById('c-rep').value,
+    cpf_rep: document.getElementById('c-cpf-rep').value,
+    cargo_rep: document.getElementById('c-cargo-rep').value
+  };
+  const btn = document.querySelector('#modal-cliente .btn-primary');
+  loading(btn, true);
+  try {
+    if (clienteEditId) {
+      await api('PUT', `/clientes/${clienteEditId}`, body);
+      toast('Cliente atualizado!');
+    } else {
+      await api('POST', '/clientes', body);
+      toast('Cliente cadastrado!');
+    }
+    clienteEditId = null;
+    document.getElementById('modal-cliente-title').textContent = 'Novo Cliente';
+    closeModal('modal-cliente');
+    ['nome','doc','tel','email','cep','rua','num','comp','bairro','cidade','rep','cpf_rep','cargo_rep'].forEach(f => {
+      const el = document.getElementById('c-'+f); if(el) el.value='';
+    });
+    document.getElementById('c-estado').value = 'SP';
+    renderClientes();
+  } catch (err) {
+    toast(err.message || 'Erro ao salvar cliente', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+// ─── PRODUTOS ───────────────────────────────────────────
+let prodEditId = null;
+let tempSeriais = [];
+let _produtos = [];
+
+async function renderProdutos() {
+  try {
+    const busca = document.getElementById('search-produtos')?.value || '';
+    const cat   = document.getElementById('filter-categoria')?.value || '';
+    let qs = [];
+    if (busca) qs.push('busca=' + encodeURIComponent(busca));
+    if (cat)   qs.push('categoria=' + encodeURIComponent(cat));
+    _produtos = await api('GET', `/produtos${qs.length ? '?'+qs.join('&') : ''}`);
+    const tb = document.getElementById('produtos-table');
+    if (!_produtos?.length) {
+      tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Nenhum produto encontrado</div></div></td></tr>`;
+      return;
+    }
+    tb.innerHTML = _produtos.map(p => {
+      const disp = parseInt(p.qtd_disponivel) || 0;
+      const tot  = parseInt(p.qtd_total) || 0;
+      const status = disp === 0 && tot > 0 ? 'Sem estoque' : disp === tot ? 'Disponível' : 'Parcial';
+      const badgeCls = status === 'Disponível' ? 'badge-green' : status === 'Sem estoque' ? 'badge-red' : 'badge-yellow';
+      return `<tr>
+        <td class="td-name">${p.nome}</td>
+        <td><span class="badge badge-blue">${p.categoria}</span></td>
+        <td>${p.marca || '—'}</td>
+        <td class="td-mono">${p.modelo || '—'}</td>
+        <td style="font-size:12px;">${tot} série(s)</td>
+        <td><span class="badge ${badgeCls}">${status} (${disp}/${tot})</span></td>
+        <td><button class="btn btn-secondary btn-sm" onclick="openProdEdit(${p.id})">Editar</button></td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    toast('Erro ao carregar produtos', 'error');
+  }
+}
+
+function openProdEdit(id) {
+  const p = _produtos.find(x => x.id === id);
+  if (!p) return;
+  prodEditId = id;
+  tempSeriais = (p.seriais || []).map(s => ({...s}));
+  document.getElementById('modal-prod-title').textContent = 'Editar Produto';
+  document.getElementById('p-nome').value = p.nome || '';
+  document.getElementById('p-categoria').value = p.categoria || '';
+  document.getElementById('p-marca').value = p.marca || '';
+  document.getElementById('p-modelo').value = p.modelo || '';
+  document.getElementById('p-desc').value = p.descricao || '';
+  renderTempSeriais();
+  openModal('modal-produto');
+}
+
+function addSerial() {
+  const v = document.getElementById('p-serial-input').value.trim();
+  if (!v) return;
+  if (tempSeriais.find(s => s.sn === v)) { toast('Série já adicionada', 'error'); return; }
+  tempSeriais.push({ sn: v, status: 'disponível', _novo: true });
+  document.getElementById('p-serial-input').value = '';
+  renderTempSeriais();
+}
+
+function removeSerial(sn) {
+  tempSeriais = tempSeriais.filter(s => s.sn !== sn);
+  renderTempSeriais();
+}
+
+function renderTempSeriais() {
+  const el = document.getElementById('seriais-lista');
+  el.innerHTML = tempSeriais.map(s => `
+    <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);
+      padding:4px 10px;border-radius:20px;font-size:12px;font-family:var(--mono)">
+      ${s.sn}
+      <span style="display:inline-flex;align-items:center;gap:4px;">
+        <span class="badge ${s.status==='disponível'?'badge-green':'badge-red'}" style="font-size:10px;padding:1px 5px;">${s.status}</span>
+        ${s.status === 'disponível' ? `<span onclick="removeSerial('${s.sn}')" style="cursor:pointer;color:var(--red);">✕</span>` : ''}
+      </span>
+    </span>`).join('');
+}
+
+async function salvarProduto() {
+  const nome = document.getElementById('p-nome').value.trim();
+  const categoria = document.getElementById('p-categoria').value;
+  if (!nome || !categoria) { toast('Preencha nome e categoria', 'error'); return; }
+  const body = {
+    nome, categoria,
+    marca: document.getElementById('p-marca').value,
+    modelo: document.getElementById('p-modelo').value,
+    descricao: document.getElementById('p-desc').value,
+    seriais: tempSeriais.filter(s => s._novo).map(s => s.sn)
+  };
+  const btn = document.querySelector('#modal-produto .btn-primary');
+  loading(btn, true);
+  try {
+    if (prodEditId) {
+      await api('PUT', `/produtos/${prodEditId}`, body);
+      toast('Produto atualizado!');
+    } else {
+      await api('POST', '/produtos', body);
+      toast('Produto cadastrado!');
+    }
+    prodEditId = null;
+    tempSeriais = [];
+    document.getElementById('modal-prod-title').textContent = 'Novo Produto';
+    closeModal('modal-produto');
+    ['p-nome','p-modelo','p-desc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('p-categoria').value = '';
+    document.getElementById('p-marca').value = '';
+    document.getElementById('seriais-lista').innerHTML = '';
+    renderProdutos();
+  } catch (err) {
+    toast(err.message || 'Erro ao salvar produto', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+// ─── ESTOQUE ────────────────────────────────────────────
+async function renderEstoque() {
+  try {
+    const rows = await api('GET', '/produtos/estoque/resumo');
+    if (!rows) return;
+    const disp  = rows.filter(r => r.status === 'disponível').length;
+    const vend  = rows.filter(r => r.status === 'vendido').length;
+    document.getElementById('est-disp').textContent  = disp;
+    document.getElementById('est-vend').textContent  = vend;
+    document.getElementById('est-total').textContent = rows.length;
+    const tb = document.getElementById('estoque-table');
+    if (!rows.length) {
+      tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">Nenhum item no estoque</div></div></td></tr>`;
+      return;
+    }
+    tb.innerHTML = rows.map(r => `
+      <tr>
+        <td class="td-name">${r.nome}</td>
+        <td><span class="badge badge-blue">${r.categoria}</span></td>
+        <td>${r.marca || '—'}</td>
+        <td class="td-mono">${r.sn}</td>
+        <td><span class="badge ${r.status==='disponível'?'badge-green':'badge-red'}">${r.status}</span></td>
+        <td class="td-mono">${r.venda_id ? '#' + String(r.venda_id).padStart(4,'0') : '—'}</td>
+      </tr>`).join('');
+  } catch (err) {
+    toast('Erro ao carregar estoque', 'error');
+  }
+}
+
+// ─── VENDAS ─────────────────────────────────────────────
+let vendaProdutos = [];
+
+async function renderVendas() {
+  try {
+    const busca  = document.getElementById('search-vendas')?.value || '';
+    const status = document.getElementById('filter-status-venda')?.value || '';
+    const pgto   = document.getElementById('filter-pgto-venda')?.value || '';
+    let qs = [];
+    if (busca)  qs.push('busca=' + encodeURIComponent(busca));
+    if (status) qs.push('status=' + encodeURIComponent(status));
+    if (pgto)   qs.push('pagamento=' + encodeURIComponent(pgto));
+    const vendas = await api('GET', `/vendas${qs.length ? '?'+qs.join('&') : ''}`);
+    if (!vendas) return;
+    renderVendasTable(vendas, 'vendas-table', false);
+  } catch (err) {
+    toast('Erro ao carregar vendas', 'error');
+  }
+}
+
+async function ciclarStatus(id, statusAtual) {
+  const statuses = ['Pendente', 'Em andamento', 'Pago'];
+  const novo = statuses[(statuses.indexOf(statusAtual) + 1) % statuses.length];
+  try {
+    await api('PATCH', `/vendas/${id}/status`, { status: novo });
+    toast(`Status → ${novo}`);
+    renderVendas();
+    renderDashboard();
+  } catch (err) {
+    toast(err.message || 'Erro ao atualizar status', 'error');
+  }
+}
+
+async function cancelarVenda(id, clienteNome) {
+  if (!confirm(`Cancelar venda #${String(id).padStart(4,'0')} de ${clienteNome}?\n\nOs produtos voltarão ao estoque. Esta ação não pode ser desfeita.`)) return;
+  try {
+    const res = await api('DELETE', `/vendas/${id}`);
+    if (!res) return;
+    toast(`Venda cancelada. ${res.seriais_devolvidos} série(s) devolvida(s) ao estoque.`);
+    renderVendas();
+    renderDashboard();
+    renderEstoque();
+  } catch (err) {
+    toast(err.message || 'Erro ao cancelar venda', 'error');
+  }
+}
+
+async function prepVendaModal() {
+  vendaProdutos = [];
+  renderVendaProdutos();
+  // Carrega clientes
+  const clientes = await api('GET', '/clientes');
+  const sel = document.getElementById('v-cliente');
+  sel.innerHTML = '<option value="">Selecione o cliente...</option>' +
+    (clientes || []).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  // Carrega produtos
+  const produtos = await api('GET', '/produtos');
+  const ps = document.getElementById('v-prod-select');
+  ps.innerHTML = '<option value="">Selecionar produto...</option>' +
+    (produtos || []).map(p => `<option value="${p.id}" data-seriais='${JSON.stringify(p.seriais||[])}'>${p.nome}${p.marca?' ('+p.marca+')':''}</option>`).join('');
+  document.getElementById('v-serial-select').innerHTML = '<option value="">Selecionar série...</option>';
+  document.getElementById('v-pgto').value = 'À vista';
+  document.getElementById('pgto-parcelado').style.display = 'none';
+  document.getElementById('v-implantacao').value = 'nao';
+  document.getElementById('implantacao-area').style.display = 'none';
+  document.getElementById('v-valor').value = '';
+  document.getElementById('v-status').value = 'Pendente';
+  document.getElementById('resumo-parcelas').style.display = 'none';
+
+  // Ao mudar produto, atualiza séries disponíveis
+  ps.onchange = function() {
+    const opt = this.options[this.selectedIndex];
+    const seriais = JSON.parse(opt.dataset.seriais || '[]');
+    const ss = document.getElementById('v-serial-select');
+    ss.innerHTML = '<option value="">Selecionar série...</option>' +
+      seriais.filter(s => s.status === 'disponível')
+             .map(s => `<option value="${s.id}">${s.sn}</option>`).join('');
+  };
+}
+
+function addProdutoVenda() {
+  const ps = document.getElementById('v-prod-select');
+  const ss = document.getElementById('v-serial-select');
+  const pid = parseInt(ps.value);
+  const serialId = parseInt(ss.value);
+  const prodOpt = ps.options[ps.selectedIndex];
+  const serialOpt = ss.options[ss.selectedIndex];
+  if (!pid || !serialId) { toast('Selecione produto e número de série', 'error'); return; }
+  if (vendaProdutos.find(vp => vp.serial_id === serialId)) { toast('Série já adicionada', 'error'); return; }
+  vendaProdutos.push({
+    produto_id: pid,
+    serial_id: serialId,
+    nome: prodOpt.textContent,
+    sn: serialOpt.textContent,
+    valor_unit: 0
+  });
+  renderVendaProdutos();
+}
+
+function removeVendaProd(serial_id) {
+  vendaProdutos = vendaProdutos.filter(vp => vp.serial_id !== serial_id);
+  renderVendaProdutos();
+}
+
+function renderVendaProdutos() {
+  const el = document.getElementById('venda-produtos-lista');
+  if (!vendaProdutos.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Nenhum produto adicionado</div>';
+    return;
+  }
+  el.innerHTML = vendaProdutos.map((vp, i) => `
+    <div class="product-row">
+      <span style="color:var(--text);font-size:13px;">${vp.nome}</span>
+      <span class="td-mono" style="font-size:12px;">${vp.sn}</span>
+      <span><input type="number" value="${vp.valor_unit||0}" placeholder="0,00"
+        style="width:90px;font-size:12px;"
+        onchange="vendaProdutos[${i}].valor_unit=parseFloat(this.value)||0"></span>
+      <span><button class="btn btn-danger btn-sm" onclick="removeVendaProd(${vp.serial_id})">✕</button></span>
+    </div>`).join('');
+}
+
+function togglePgto() {
+  const v = document.getElementById('v-pgto').value;
+  document.getElementById('pgto-parcelado').style.display = v === 'Parcelado' ? 'block' : 'none';
+  calcParcelas();
+}
+function toggleImplantacao() {
+  document.getElementById('implantacao-area').style.display =
+    document.getElementById('v-implantacao').value === 'sim' ? 'block' : 'none';
+}
+function calcParcelas() {
+  const total    = parseFloat(document.getElementById('v-valor').value) || 0;
+  const entrada  = parseFloat(document.getElementById('v-entrada')?.value) || 0;
+  const nparcelas = parseInt(document.getElementById('v-parcelas')?.value) || 0;
+  const el = document.getElementById('resumo-parcelas');
+  if (!total || !nparcelas) { el.style.display = 'none'; return; }
+  const saldo = total - entrada;
+  const vParc = saldo / nparcelas;
+  el.style.display = 'block';
+  document.getElementById('rp-total').textContent   = fmtMoeda(total);
+  document.getElementById('rp-entrada').textContent = fmtMoeda(entrada);
+  document.getElementById('rp-saldo').textContent   = fmtMoeda(saldo);
+  document.getElementById('rp-n-parc').textContent  = nparcelas;
+  document.getElementById('rp-parc-val').textContent = fmtMoeda(vParc);
+}
+
+async function registrarVenda() {
+  const cid   = document.getElementById('v-cliente').value;
+  const valor = parseFloat(document.getElementById('v-valor').value);
+  const pgto  = document.getElementById('v-pgto').value;
+  const status = document.getElementById('v-status').value;
+  const impl  = document.getElementById('v-implantacao').value === 'sim';
+  if (!cid)   { toast('Selecione um cliente', 'error'); return; }
+  if (!valor) { toast('Informe o valor da venda', 'error'); return; }
+  if (!vendaProdutos.length) { toast('Adicione ao menos um produto', 'error'); return; }
+
+  let entrada = null, num_parcelas = null, dia_vencimento = null, valor_parcela = null, saldo_restante = null;
+  if (pgto === 'Parcelado') {
+    entrada       = parseFloat(document.getElementById('v-entrada').value) || 0;
+    num_parcelas  = parseInt(document.getElementById('v-parcelas').value) || 0;
+    dia_vencimento = parseInt(document.getElementById('v-dia-venc').value) || 22;
+    saldo_restante = valor - entrada;
+    valor_parcela  = num_parcelas > 0 ? saldo_restante / num_parcelas : 0;
+  }
+
+  const body = {
+    cliente_id: parseInt(cid),
+    valor_total: valor,
+    forma_pagamento: pgto,
+    status,
+    entrada, num_parcelas, dia_vencimento, valor_parcela, saldo_restante,
+    tem_implantacao: impl,
+    impl_data: impl ? document.getElementById('v-impl-data').value : null,
+    impl_descricao: impl ? document.getElementById('v-impl-desc').value : null,
+    itens: vendaProdutos.map(vp => ({
+      produto_id: vp.produto_id,
+      serial_id: vp.serial_id,
+      valor_unit: vp.valor_unit
+    }))
+  };
+
+  const btn = document.querySelector('#modal-nova-venda .btn-primary');
+  loading(btn, true);
+  try {
+    const venda = await api('POST', '/vendas', body);
+    if (!venda) return;
+    toast('Venda registrada com sucesso!');
+    closeModal('modal-nova-venda');
+    renderVendas();
+    renderDashboard();
+  } catch (err) {
+    toast(err.message || 'Erro ao registrar venda', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+// ─── CONTRATOS ──────────────────────────────────────────
+async function renderContratos() {
+  try {
+    const contratos = await api('GET', '/contratos');
+    const tb = document.getElementById('contratos-table');
+    if (!contratos?.length) {
+      tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📄</div><div class="empty-title">Nenhum contrato gerado</div></div></td></tr>`;
+      return;
+    }
+    tb.innerHTML = contratos.map(c => `
+      <tr>
+        <td class="td-mono">${c.num_contrato}</td>
+        <td class="td-mono">#${String(c.venda_id).padStart(4,'0')}</td>
+        <td class="td-name">${c.cliente_nome}</td>
+        <td style="color:var(--accent);font-weight:600;">${fmtMoeda(c.valor_total)}</td>
+        <td>${fmtData(c.gerado_em)}</td>
+        <td><span class="badge ${c.tem_implantacao?'badge-blue':'badge-gray'}">${c.tem_implantacao?'Sim':'Não'}</span></td>
+        <td><button class="btn btn-blue btn-sm" onclick="gerarContrato(${c.venda_id})">📄 Visualizar</button></td>
+      </tr>`).join('');
+  } catch (err) {
+    toast('Erro ao carregar contratos', 'error');
+  }
+}
+
+async function gerarContrato(vendaId) {
+  try {
+    const venda = await api('GET', `/vendas/${vendaId}`);
+    if (!venda) return;
+
+    contratoAtual = { venda, cliente: venda };
+    const numContrato = 'MBX-' + String(_nContrato).padStart(4,'0');
+
+    const tipoPessoa = (venda.doc||venda.cliente_doc||'').replace(/\D/g,'').length > 11
+      ? 'pessoa jurídica de direito privado, devidamente inscrita no CNPJ nº'
+      : 'pessoa física, inscrita no CPF sob o nº';
+
+    const doc = venda.doc || venda.cliente_doc || '';
+    const nome = venda.cliente_nome || venda.nome || '';
+    const enderecoCliente = [
+      venda.rua, venda.num ? 'n. '+venda.num : '',
+      venda.comp, venda.bairro ? 'bairro '+venda.bairro : '',
+      venda.cidade && venda.estado ? venda.cidade+'-'+venda.estado : '',
+      venda.cep ? 'CEP '+venda.cep : ''
+    ].filter(Boolean).join(', ');
+
+    const repCliente = venda.rep
+      ? `, neste ato legalmente representada por seu sócio administrador <strong>${venda.rep}</strong>, ${venda.cargo_rep||'brasileiro(a)'}, inscrito no CPF sob o nº <strong>${venda.cpf_rep}</strong>, domiciliado no endereço retromencionado`
+      : '';
+
+    const itens = venda.itens || [];
+    const qtd = itens.length;
+    const prodDescricoes = itens.map(it => `${it.produto_nome}${it.marca?' ('+it.marca+')':''}`.trim()).join(', ');
+    const prodNumerosStr = itens.map(it => `n. de série <strong>${it.sn}</strong>`).join('; ');
+    const prodListaDetalhada = itens.map((it,i) =>
+      `<li style="margin:4px 0;"><strong>${it.produto_nome}${it.marca?' — '+it.marca:''}</strong>, número de série: <strong>${it.sn}</strong></li>`
+    ).join('');
+
+    let pgtoHTML = '';
+    const valor = parseFloat(venda.valor_total||0);
+    if (venda.forma_pagamento === 'À vista') {
+      pgtoHTML = `<li style="margin:4px 0;"><strong>Pagamento à vista</strong> no valor de <strong>${fmtMoeda(valor)} (${reaisExtenso(valor)})</strong>, a ser realizado no ato da assinatura, mediante transferência via <strong>Chave PIX 61732794000172</strong>;</li>`;
+    } else if (venda.forma_pagamento === 'Cartão de crédito') {
+      pgtoHTML = `<li style="margin:4px 0;"><strong>Pagamento via cartão de crédito</strong> no valor de <strong>${fmtMoeda(valor)} (${reaisExtenso(valor)})</strong>, a ser processado no ato da assinatura;</li>`;
+    } else {
+      const ent   = parseFloat(venda.entrada||0);
+      const saldo = parseFloat(venda.saldo_restante||0);
+      const nParc = parseInt(venda.num_parcelas||0);
+      const vParc = parseFloat(venda.valor_parcela||0);
+      const diaVenc = venda.dia_vencimento || 22;
+      pgtoHTML = `
+        <li style="margin:4px 0;"><strong>Entrada</strong> no valor de <strong>${fmtMoeda(ent)} (${reaisExtenso(ent)})</strong>, a ser paga no ato da assinatura, mediante transferência via <strong>Chave PIX 61732794000172</strong>;</li>
+        <li style="margin:4px 0;"><strong>Saldo restante:</strong> O valor de <strong>${fmtMoeda(saldo)} (${reaisExtenso(saldo)})</strong> será pago em <strong>${nParc} (${numPorExtenso(nParc)}) boletos</strong> mensais, com vencimento todo dia <strong>${diaVenc}</strong> de cada mês.</li>`;
+    }
+
+    let implantacaoClausula = '';
+    let clausulaCount = 5;
+    if (venda.tem_implantacao) {
+      clausulaCount = 6;
+      implantacaoClausula = `
+        <p><strong>5. DA IMPLANTAÇÃO</strong></p>
+        <p>5.1. O presente contrato contempla a prestação de serviços de implantação, a serem executados na data de <strong>${fmtData(venda.impl_data)}</strong>.</p>
+        <p>5.2. Os serviços compreendem: ${venda.impl_descricao || 'instalação, configuração e testes dos equipamentos adquiridos'}.</p>
+        <p>5.3. A <strong>COMPRADORA</strong> deverá garantir acesso às suas instalações e disponibilizar a infraestrutura necessária para a execução dos serviços na data acordada.</p>`;
+    }
+
+    const nc = clausulaCount;
+    // Corrige parsing da data — funciona com qualquer formato ISO
+    const _mesesPrev = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    let dataExtenso;
+    try {
+      const dataStr = (venda.data_venda || today()).substring(0, 10);
+      const [ano, mes, dia] = dataStr.split('-').map(Number);
+      dataExtenso = `${dia} de ${_mesesPrev[mes-1]} de ${ano}`;
+    } catch(e) {
+      const _n = new Date();
+      dataExtenso = `${_n.getDate()} de ${_mesesPrev[_n.getMonth()]} de ${_n.getFullYear()}`;
+    }
+
+    const html = `
+      <h1>CONTRATO DE COMPRA E VENDA</h1>
+      <p style="text-align:center;font-size:13px;font-style:italic;">Equipamento de Telecomunicações</p>
+      <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:13px;">
+        <tr>
+          <td style="border:1px solid #333;padding:10px 14px;width:120px;font-weight:bold;vertical-align:top;">COMPRADOR:</td>
+          <td style="border:1px solid #333;padding:10px 14px;">
+            <strong>${nome}</strong>, ${tipoPessoa} <strong>${doc}</strong>, com sede na ${enderecoCliente}${repCliente}.
+          </td>
+        </tr>
+        <tr><td style="border:1px solid #333;padding:6px;"></td><td style="border:1px solid #333;padding:6px;"></td></tr>
+        <tr>
+          <td style="border:1px solid #333;padding:10px 14px;font-weight:bold;vertical-align:top;">VENDEDORA:</td>
+          <td style="border:1px solid #333;padding:10px 14px;">
+            <strong>MEGABITIX SOLUÇÕES EM CONECTIVIDADE LTDA</strong>, pessoa jurídica de direito privado, devidamente inscrita no CNPJ sob o nº <strong>61.732.794/0001-72</strong>, com sede na Rua Espírito Santo, nº 550, bairro Centro, Sidrolândia-MS, CEP 79.170-000, neste ato representada por <strong>Pedro Dutra</strong>, brasileiro, casado, empresário, inscrito no CPF sob o nº <strong>067.148.551-25</strong>.
+          </td>
+        </tr>
+      </table>
+      <p>As partes acima identificadas têm entre si justo e acertado o presente Contrato de Compra e Venda, que se regerá pelas cláusulas e condições a seguir descritas.</p>
+      <p><strong>1. DO OBJETO</strong></p>
+      <p>1.1. Constitui objeto do presente contrato a compra, pela <strong>COMPRADORA</strong>, de ${qtd===1?'um (01) dispositivo':'('+qtd+') dispositivos'} semi novo(s) <strong>${prodDescricoes}</strong>, ${prodNumerosStr}, caracterizado(s) para operações de telecomunicações, de propriedade da <strong>VENDEDORA</strong>.</p>
+      ${qtd>1?`<ul style="margin:8px 0 8px 20px;padding:0;">${prodListaDetalhada}</ul>`:''}
+      <p><strong>2. DAS RESPONSABILIDADES</strong></p>
+      <p>2.1. A <strong>VENDEDORA</strong> se responsabiliza pelo bom estado e perfeito funcionamento do objeto deste contrato, salvo desgaste natural de uso, mal uso ou hipóteses de casos fortuitos ou de força maior, em atenção aos termos do art. 441 e seguintes da Lei (federal) nº 10.406/2002.</p>
+      <p>2.2. As Partes acordam que a <strong>VENDEDORA</strong> se responsabilizará pelos vícios ocultos do equipamento que se apresentarem comprovadamente no prazo de 12 (doze) meses a contar da assinatura deste instrumento.</p>
+      <p>2.3. A <strong>VENDEDORA</strong> promoverá a entrega do equipamento à <strong>COMPRADORA</strong> no prazo de até 10 (dez) dias úteis, a contar da assinatura deste instrumento.</p>
+      <p><strong>3. DA TRANSFERÊNCIA DA PROPRIEDADE</strong></p>
+      <p>3.1. A transferência da propriedade do bem adquirido ocorrerá imediatamente após a assunção da posse dele pela <strong>COMPRADORA</strong>, independentemente da data de assinatura, devendo a <strong>VENDEDORA</strong> resguardar as condições de conservação do mesmo, nos termos do art. 1.267 da Lei (federal) nº 10.406/2002.</p>
+      <p><strong>4. DO PAGAMENTO</strong></p>
+      <p>4.1. Pelo objeto deste contrato, a <strong>COMPRADORA</strong> pagará à <strong>VENDEDORA</strong> a quantia total de <strong>${fmtMoeda(valor)} (${reaisExtenso(valor)})</strong>, observadas as seguintes condições:</p>
+      <ul style="margin:8px 0 8px 20px;padding:0;">${pgtoHTML}</ul>
+      ${implantacaoClausula}
+      <p><strong>${nc}. CONDIÇÕES GERAIS</strong></p>
+      <p>${nc}.1. O presente instrumento vincula as partes e seus sucessores a qualquer título, em caráter irrevogável e irretratável, ao fiel cumprimento dos termos aqui avençados, constituindo-se em título executivo extrajudicial.</p>
+      <p>${nc}.2. As partes declaram que o presente contrato está entabulado nos termos do código civil brasileiro, inexistindo relação de consumo entre ambas, sendo inaplicável o Código de Defesa do Consumidor.</p>
+      <p>${nc}.3. As Partes reconhecem a validade jurídica da assinatura digital/eletrônica neste instrumento, em consonância com a Medida Provisória nº 2.200-2/2001 e o Decreto nº 10.278/2020.</p>
+      <p>${nc}.4. As Partes dispensam a assinatura de duas testemunhas para validação do ato jurídico aqui celebrado, nos termos do art. 784, §4º, do Código de Processo Civil.</p>
+      <p>${nc}.5. Fica eleito o Foro da Comarca de <strong>Sidrolândia/MS</strong> como único competente para dirimir eventuais dúvidas ou litígios oriundos do presente instrumento, renunciando-se a todos os outros, por mais privilegiados que sejam.</p>
+      <p>E por estarem assim justos e contratados, assinam o presente contrato de forma digital e/ou eletrônica.</p>
+      <p style="text-align:right;">Sidrolândia/MS, ${dataExtenso}.</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:50px;font-size:13px;">
+        <tr>
+          <td style="border:1px solid #333;padding:40px 20px 12px;width:50%;text-align:center;vertical-align:bottom;">
+            <strong>${nome}</strong><br>CNPJ/CPF: <strong>${doc}</strong>
+          </td>
+          <td style="border:1px solid #333;padding:40px 20px 12px;width:50%;text-align:center;vertical-align:bottom;">
+            <strong>MEGABITIX SOLUÇÕES EM CONECTIVIDADE LTDA</strong><br>CNPJ: <strong>61.732.794/0001-72</strong>
+          </td>
+        </tr>
+      </table>`;
+
+    document.getElementById('contrato-preview-area').innerHTML = html;
+    contratoAtual = { venda, numContrato, cliente: { nome, doc } };
+
+    // Registra no backend
+    await api('POST', '/contratos', { venda_id: vendaId, num_contrato: numContrato });
+    _nContrato++;
+
+    openModal('modal-contrato');
+    renderContratos();
+  } catch (err) {
+    toast('Erro ao gerar contrato: ' + err.message, 'error');
+  }
+}
+
+// ─── PDF ────────────────────────────────────────────────
+function downloadContratoPDF() {
+  if (!contratoAtual) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const pW = 210; const pH = 297;
+  const mL = 22; const mR = 22; const mT = 25; const mB = 25;
+  const cW = pW - mL - mR;
+  let y = mT;
+  const venda = contratoAtual.venda;
+  const valor = parseFloat(venda.valor_total || 0);
+
+  // ── helpers ──────────────────────────────────────────
+  function newPage() { doc.addPage(); y = mT; drawPageBorder(); }
+  function check(h) { if (y + h > pH - mB) newPage(); }
+  function drawPageBorder() {
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
+    doc.rect(14, 14, pW - 28, pH - 28);
+  }
+
+  function txt(text, fs=9, bold=false, align='left', color=[30,30,30], indent=0) {
+    doc.setFontSize(fs);
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.setTextColor(...color);
+    const maxW = cW - indent;
+    const lh = fs * 0.45;
+    const lines = doc.splitTextToSize(text, maxW);
+    lines.forEach(line => {
+      check(lh + 1);
+      const x = align === 'center' ? pW / 2 : mL + indent;
+      doc.text(line, x, y, { align });
+      y += lh;
+    });
+    return lines.length;
+  }
+
+  function gap(h=3) { y += h; }
+
+  function hline(color=[200,200,200], lw=0.3) {
+    doc.setDrawColor(...color); doc.setLineWidth(lw);
+    doc.line(mL, y, pW - mR, y);
+    gap(3);
+  }
+
+  function paragrafo(label, corpo, indent=0) {
+    check(12);
+    // label em negrito + corpo normal na mesma linha
+    const lh = 9 * 0.45;
+    const labelW = doc.getStringUnitWidth(label) * 9 / doc.internal.scaleFactor;
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+    doc.text(label, mL + indent, y);
+    doc.setFont('helvetica','normal');
+    const resto = corpo;
+    const linhas = doc.splitTextToSize(resto, cW - labelW - indent - 1);
+    if (linhas.length > 0) {
+      doc.text(linhas[0], mL + indent + labelW + 1, y);
+      y += lh;
+      for (let i = 1; i < linhas.length; i++) {
+        check(lh); doc.text(linhas[i], mL + indent, y); y += lh;
+      }
+    } else { y += lh; }
+    gap(1.5);
+  }
+
+  function secao(titulo) {
+    check(14);
+    gap(3);
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+    doc.text(titulo, mL, y);
+    y += 9 * 0.45;
+    gap(1);
+  }
+
+  function blocoTexto(texto, indent=0) {
+    const lh = 9 * 0.45;
+    const linhas = doc.splitTextToSize(texto, cW - indent);
+    linhas.forEach(l => { check(lh); doc.text(l, mL + indent, y); y += lh; });
+    gap(2);
+  }
+
+  // ── capa / cabeçalho ─────────────────────────────────
+  drawPageBorder();
+
+  // Logo (se carregada)
+  if (_logoBase64) {
+    try {
+      const imgType = _logoBase64.includes('png') ? 'PNG' : 'JPEG';
+      // Calcula dimensões mantendo proporção — max 40x20mm
+      const tmpImg = new Image();
+      tmpImg.src = _logoBase64;
+      let imgW = 40; let imgH = 20;
+      if (tmpImg.naturalWidth && tmpImg.naturalHeight) {
+        const ratio = tmpImg.naturalWidth / tmpImg.naturalHeight;
+        if (ratio > 2) { imgW = 40; imgH = 40 / ratio; }
+        else { imgH = 20; imgW = 20 * ratio; }
+      }
+      doc.addImage(_logoBase64, imgType, mL, mT, imgW, imgH);
+      y = mT + imgH + 3;
+    } catch(e) { y = mT; }
+  }
+
+  // Linha decorativa topo
+  doc.setFillColor(30, 30, 30);
+  doc.rect(mL, y, cW, 0.8, 'F');
+  gap(5);
+
+  txt('CONTRATO DE COMPRA E VENDA', 15, true, 'center', [20,20,20]);
+  gap(1);
+  txt('Equipamento de Telecomunicações', 9, false, 'center', [100,100,100]);
+  gap(6);
+
+  // Linha separadora
+  doc.setFillColor(30, 30, 30);
+  doc.rect(mL, y, cW, 0.4, 'F');
+  gap(6);
+
+  // ── Tabela de partes ─────────────────────────────────
+  const c = contratoAtual.venda;
+  const nome = c.cliente_nome || c.nome || '';
+  const docN = c.doc || c.cliente_doc || '';
+  const tipoPessoa = docN.replace(/\D/g,'').length > 11
+    ? 'pessoa jurídica de direito privado, devidamente inscrita no CNPJ nº'
+    : 'pessoa física, inscrita no CPF sob o nº';
+
+  const endCli = [
+    c.rua, c.num ? 'n. '+c.num : '', c.comp,
+    c.bairro ? 'bairro '+c.bairro : '',
+    c.cidade && c.estado ? c.cidade+'-'+c.estado : '',
+    c.cep ? 'CEP '+c.cep : ''
+  ].filter(Boolean).join(', ');
+
+  const repCli = c.rep
+    ? `, neste ato legalmente representada por seu sócio administrador ${c.rep}, ${c.cargo_rep||''}, inscrito no CPF sob o nº ${c.cpf_rep}, domiciliado no endereço retromencionado`
+    : '';
+
+  const compradorTexto = `${nome}, ${tipoPessoa} ${docN}, com sede na ${endCli}${repCli}.`;
+  const vendedoraTexto = `MEGABITIX SOLUÇÕES EM CONECTIVIDADE LTDA, pessoa jurídica de direito privado, devidamente inscrita no CNPJ sob o nº 61.732.794/0001-72, com sede na Rua Espírito Santo, nº 550, bairro Centro, Sidrolândia-MS, CEP 79.170-000, neste ato representada por Pedro Dutra, brasileiro, casado, empresário, inscrito no CPF sob o nº 067.148.551-25.`;
+
+  // Desenha caixa COMPRADOR
+  const labelCol = 30;
+  const bodyCol = mL + labelCol + 3;
+  const bodyW = cW - labelCol - 3;
+  const lh9 = 9 * 0.45;
+
+  function caixaParte(label, texto) {
+    const linhas = doc.splitTextToSize(texto, bodyW);
+    const alturaTexto = linhas.length * lh9 + 4;
+    const alturaTotal = alturaTexto + 8;
+    check(alturaTotal);
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
+    doc.rect(mL, y, cW, alturaTotal);
+    doc.setFillColor(245,245,245);
+    doc.rect(mL, y, labelCol, alturaTotal, 'F');
+    doc.setDrawColor(180,180,180);
+    doc.line(mL + labelCol, y, mL + labelCol, y + alturaTotal);
+    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(40,40,40);
+    doc.text(label, mL + labelCol/2, y + alturaTotal/2 + 1, { align:'center' });
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(30,30,30);
+    let ty = y + 5;
+    linhas.forEach(l => { doc.text(l, bodyCol, ty); ty += lh9; });
+    y += alturaTotal + 2;
+  }
+
+  caixaParte('COMPRADOR:', compradorTexto);
+  gap(1);
+  caixaParte('VENDEDORA:', vendedoraTexto);
+  gap(5);
+
+  blocoTexto('As partes acima identificadas têm entre si justo e acertado o presente Contrato de Compra e Venda, que se regerá pelas cláusulas e condições a seguir descritas.');
+
+  // ── Objeto ───────────────────────────────────────────
+  const itens = venda.itens || [];
+  const qtd = itens.length;
+  const prodDescricoes = itens.map(it => `${it.produto_nome}${it.marca?' ('+it.marca+')':''}`.trim()).join(', ');
+  const prodNumerosStr = itens.map(it => `n. de série ${it.sn}`).join('; ');
+
+  secao('1. DO OBJETO');
+  blocoTexto(`1.1. Constitui objeto do presente contrato a compra, pela COMPRADORA, de ${qtd===1?'um (01) dispositivo':'('+qtd+') dispositivos'} semi novo(s) ${prodDescricoes}, ${prodNumerosStr}, caracterizado(s) para operações de telecomunicações, de propriedade da VENDEDORA.`);
+
+  if (qtd > 1) {
+    itens.forEach((it, i) => {
+      check(7);
+      const lhItem = 9 * 0.45;
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+      doc.text(`${i+1}. ${it.produto_nome}${it.marca?' — '+it.marca:''} — Série: ${it.sn}`, mL + 5, y);
+      y += lhItem; gap(1);
+    });
+    gap(2);
+  }
+
+  // ── Responsabilidades ────────────────────────────────
+  secao('2. DAS RESPONSABILIDADES');
+  blocoTexto('2.1. A VENDEDORA se responsabiliza pelo bom estado e perfeito funcionamento do objeto deste contrato, salvo desgaste natural de uso, mal uso ou hipóteses de casos fortuitos ou de força maior, em atenção aos termos do art. 441 e seguintes da Lei (federal) nº 10.406/2002.');
+  blocoTexto('2.2. As Partes acordam que a VENDEDORA se responsabilizará pelos vícios ocultos do equipamento que se apresentarem comprovadamente no prazo de 12 (doze) meses a contar da assinatura deste instrumento.');
+  blocoTexto('2.3. A VENDEDORA promoverá a entrega do equipamento à COMPRADORA no prazo de até 10 (dez) dias úteis, a contar da assinatura deste instrumento.');
+
+  // ── Transferência ────────────────────────────────────
+  secao('3. DA TRANSFERÊNCIA DA PROPRIEDADE');
+  blocoTexto('3.1. A transferência da propriedade do bem adquirido ocorrerá imediatamente após a assunção da posse dele pela COMPRADORA, independentemente da data de assinatura, devendo a VENDEDORA resguardar as condições de conservação do mesmo, nos termos do art. 1.267 da Lei (federal) nº 10.406/2002.');
+
+  // ── Pagamento ────────────────────────────────────────
+  secao('4. DO PAGAMENTO');
+  blocoTexto(`4.1. Pelo objeto deste contrato, a COMPRADORA pagará à VENDEDORA a quantia total de ${fmtMoeda(valor)} (${reaisExtenso(valor)}), observadas as seguintes condições:`);
+
+  const fp = venda.forma_pagamento;
+  if (fp === 'À vista') {
+    blocoTexto(`• Pagamento à vista no valor de ${fmtMoeda(valor)} (${reaisExtenso(valor)}), a ser realizado no ato da assinatura do contrato, mediante transferência via Chave PIX 61732794000172.`, 5);
+  } else if (fp === 'Cartão de crédito') {
+    blocoTexto(`• Pagamento via cartão de crédito no valor de ${fmtMoeda(valor)} (${reaisExtenso(valor)}), a ser processado no ato da assinatura.`, 5);
+  } else {
+    const ent = parseFloat(venda.entrada||0);
+    const saldo = parseFloat(venda.saldo_restante||0);
+    const nParc = parseInt(venda.num_parcelas||0);
+    const vParc = parseFloat(venda.valor_parcela||0);
+    const diaVenc = venda.dia_vencimento || 22;
+    blocoTexto(`• Entrada no valor de ${fmtMoeda(ent)} (${reaisExtenso(ent)}), a ser paga no ato da assinatura, mediante transferência via Chave PIX 61732794000172.`, 5);
+    blocoTexto(`• Saldo restante de ${fmtMoeda(saldo)} (${reaisExtenso(saldo)}) dividido em ${nParc} (${numPorExtenso(nParc)}) boletos mensais de ${fmtMoeda(vParc)}, com vencimento todo dia ${diaVenc} de cada mês.`, 5);
+  }
+
+  // ── Implantação ──────────────────────────────────────
+  if (venda.tem_implantacao) {
+    secao('5. DA IMPLANTAÇÃO');
+    const dataImpl = venda.impl_data ? (() => {
+      const [a,m,d] = venda.impl_data.substring(0,10).split('-').map(Number);
+      return new Date(a, m-1, d).toLocaleDateString('pt-BR');
+    })() : '';
+    blocoTexto(`5.1. O presente contrato contempla a prestação de serviços de implantação, a serem executados na data de ${dataImpl}.`);
+    blocoTexto(`5.2. Os serviços compreendem: ${venda.impl_descricao || 'instalação, configuração e testes dos equipamentos adquiridos'}.`);
+    blocoTexto('5.3. A COMPRADORA deverá garantir acesso às suas instalações e disponibilizar a infraestrutura necessária para a execução dos serviços na data acordada.');
+  }
+
+  // ── Condições Gerais ─────────────────────────────────
+  const nc = venda.tem_implantacao ? 6 : 5;
+  secao(`${nc}. CONDIÇÕES GERAIS`);
+  blocoTexto(`${nc}.1. O presente instrumento vincula as partes e seus sucessores a qualquer título, em caráter irrevogável e irretratável, ao fiel cumprimento dos termos aqui avençados, constituindo-se em título executivo extrajudicial.`);
+  blocoTexto(`${nc}.2. As partes declaram que o presente contrato está entabulado nos termos do código civil brasileiro, inexistindo relação de consumo entre ambas, sendo inaplicável o Código de Defesa do Consumidor.`);
+  blocoTexto(`${nc}.3. As Partes reconhecem a validade jurídica da assinatura digital/eletrônica neste instrumento, em consonância com a Medida Provisória nº 2.200-2/2001 e o Decreto nº 10.278/2020.`);
+  blocoTexto(`${nc}.4. As Partes dispensam a assinatura de duas testemunhas para validação do ato jurídico aqui celebrado, nos termos do art. 784, §4º, do Código de Processo Civil.`);
+  blocoTexto(`${nc}.5. Fica eleito o Foro da Comarca de Sidrolândia/MS como único competente para dirimir eventuais dúvidas ou litígios oriundos do presente instrumento, renunciando-se a todos os outros, por mais privilegiados que sejam.`);
+
+  gap(2);
+  blocoTexto('E por estarem assim justos e contratados, assinam o presente contrato de forma digital e/ou eletrônica.');
+
+  // ── Data ─────────────────────────────────────────────
+  const _meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  let dataExtenso;
+  try {
+    const ds = (venda.data_venda || new Date().toISOString()).substring(0,10);
+    const [_a,_m,_d] = ds.split('-').map(Number);
+    dataExtenso = `${_d} de ${_meses[_m-1]} de ${_a}`;
+  } catch(e) {
+    const _now = new Date();
+    dataExtenso = `${_now.getDate()} de ${_meses[_now.getMonth()]} de ${_now.getFullYear()}`;
+  }
+  gap(3);
+  txt(`Sidrolândia/MS, ${dataExtenso}.`, 9, false, 'right', [30,30,30]);
+  gap(10);
+
+  // ── Assinaturas ──────────────────────────────────────
+  check(45);
+  const midX = pW / 2;
+  const sigY = y;
+  const sigW = (cW / 2) - 5;
+
+  // Caixas de assinatura
+  doc.setDrawColor(150,150,150); doc.setLineWidth(0.3);
+  doc.rect(mL, sigY, sigW, 30);
+  doc.rect(midX + 3, sigY, sigW, 30);
+
+  // Nome dentro das caixas
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30);
+  const nomeLinhas = doc.splitTextToSize(nome, sigW - 6);
+  doc.text(nomeLinhas, mL + sigW/2, sigY + 18, { align:'center' });
+  doc.setFont('helvetica','normal');
+  doc.text(`CNPJ/CPF: ${docN}`, mL + sigW/2, sigY + 24, { align:'center' });
+
+  doc.setFont('helvetica','bold');
+  doc.text('MEGABITIX SOLUÇÕES EM CONECTIVIDADE LTDA', midX + 3 + sigW/2, sigY + 16, { align:'center' });
+  doc.setFont('helvetica','normal');
+  doc.text('CNPJ: 61.732.794/0001-72', midX + 3 + sigW/2, sigY + 22, { align:'center' });
+
+  y = sigY + 35;
+
+  // ── Rodapé em todas as páginas ───────────────────────
+  const totalPgs = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPgs; i++) {
+    doc.setPage(i);
+    // Linha de rodapé
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.3);
+    doc.line(mL, pH - mB, pW - mR, pH - mB);
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(130,130,130);
+    doc.text('Rua Espírito Santo, nº 550, Centro, CEP 79.170-000, Sidrolândia/MS  |  (67) 4042-2030  |  vendas@megabitix.com.br',
+      pW/2, pH - mB + 4, { align:'center' });
+    doc.text(`${contratoAtual.numContrato}`, mL, pH - mB + 4);
+    doc.text(`Pág. ${i}/${totalPgs}`, pW - mR, pH - mB + 4, { align:'right' });
+  }
+
+  const nomeArq = `Contrato_${contratoAtual.numContrato}_${(nome||'').replace(/[^a-zA-Z0-9]/g,'_')}.pdf`;
+  doc.save(nomeArq);
+  toast('PDF baixado com sucesso!');
+}
+
+// ─── USUÁRIOS ───────────────────────────────────────────
+async function abrirUsuarios() {
+  if (AUTH.user?.perfil !== 'admin') { toast('Acesso restrito a administradores', 'error'); return; }
+  try {
+    const usuarios = await api('GET', '/auth/usuarios');
+    const tb = document.getElementById('usuarios-table-body');
+    tb.innerHTML = (usuarios||[]).map(u => `
+      <tr>
+        <td style="padding:8px 10px;color:var(--text);font-size:13px;">${u.nome}</td>
+        <td style="padding:8px 10px;color:var(--text2);font-size:13px;">${u.email}</td>
+        <td style="padding:8px 10px;"><span class="badge ${u.perfil==='admin'?'badge-blue':'badge-gray'}">${u.perfil}</span></td>
+        <td style="padding:8px 10px;"><span class="badge ${u.ativo?'badge-green':'badge-red'}">${u.ativo?'Ativo':'Inativo'}</span></td>
+        <td style="padding:8px 10px;">
+          ${u.id !== AUTH.user.id ? `
+            <button class="btn btn-secondary btn-sm" onclick="toggleAtivo(${u.id}, ${u.ativo})">${u.ativo?'Desativar':'Ativar'}</button>
+          ` : '<span style="font-size:12px;color:var(--text3);">Você</span>'}
+        </td>
+      </tr>`).join('');
+    openModal('modal-usuarios');
+  } catch (err) {
+    toast('Erro ao carregar usuários', 'error');
+  }
+}
+
+async function criarUsuario() {
+  const nome  = document.getElementById('nu-nome').value.trim();
+  const email = document.getElementById('nu-email').value.trim();
+  const senha = document.getElementById('nu-senha').value;
+  const perfil = document.getElementById('nu-perfil').value;
+  if (!nome || !email || !senha) { toast('Preencha todos os campos', 'error'); return; }
+  if (senha.length < 6) { toast('Senha deve ter pelo menos 6 caracteres', 'error'); return; }
+  const btn = document.querySelector('#modal-usuarios .btn-primary');
+  loading(btn, true);
+  try {
+    await api('POST', '/auth/usuarios', { nome, email, senha, perfil });
+    toast(`Usuário ${nome} criado!`);
+    ['nu-nome','nu-email','nu-senha'].forEach(id => document.getElementById(id).value='');
+    abrirUsuarios();
+  } catch (err) {
+    toast(err.message || 'Erro ao criar usuário', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+async function toggleAtivo(id, ativo) {
+  try {
+    await api('PUT', `/auth/usuarios/${id}`, { ativo: !ativo });
+    toast(ativo ? 'Usuário desativado' : 'Usuário ativado');
+    abrirUsuarios();
+  } catch (err) {
+    toast('Erro ao alterar status', 'error');
+  }
+}
+
+function abrirMinhaConta() {
+  const u = AUTH.user;
+  document.getElementById('minha-conta-info').innerHTML = `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center;">
+      <span style="color:var(--text3);font-size:12px;">Nome</span><strong>${u?.nome||'—'}</strong>
+      <span style="color:var(--text3);font-size:12px;">E-mail</span><span>${u?.email||'—'}</span>
+      <span style="color:var(--text3);font-size:12px;">Perfil</span><span class="badge ${u?.perfil==='admin'?'badge-blue':'badge-gray'}">${u?.perfil||'—'}</span>
+    </div>`;
+  ['mc-senha-atual','mc-nova-senha','mc-confirma-senha'].forEach(id => document.getElementById(id).value='');
+}
+
+async function trocarSenha() {
+  const atual   = document.getElementById('mc-senha-atual').value;
+  const nova    = document.getElementById('mc-nova-senha').value;
+  const confirma = document.getElementById('mc-confirma-senha').value;
+  if (!atual || !nova) { toast('Preencha as senhas', 'error'); return; }
+  if (nova !== confirma) { toast('Nova senha e confirmação não coincidem', 'error'); return; }
+  if (nova.length < 6) { toast('Nova senha deve ter pelo menos 6 caracteres', 'error'); return; }
+  const btn = document.querySelector('#modal-minha-conta .btn-primary');
+  loading(btn, true);
+  try {
+    await api('PUT', '/auth/me/senha', { senha_atual: atual, nova_senha: nova });
+    toast('Senha alterada com sucesso!');
+    closeModal('modal-minha-conta');
+  } catch (err) {
+    toast(err.message || 'Erro ao trocar senha', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+// ─── VALOR POR EXTENSO ───────────────────────────────────
+function reaisExtenso(valor) {
+  const grupos = ['','mil','milhão','bilhão'];
+  const unidades = ['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove'];
+  const dezenas  = ['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+  const centenas = ['','cem','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+  function g3(n) {
+    if (n===0) return ''; if (n===100) return 'cem';
+    let s=''; const c=Math.floor(n/100); const r=n%100;
+    if (c) s+=centenas[c]; if (c&&r) s+=' e ';
+    if (r<20) s+=unidades[r]; else { s+=dezenas[Math.floor(r/10)]; if (r%10) s+=' e '+unidades[r%10]; }
+    return s;
+  }
+  if (valor===0) return 'zero reais';
+  const inteiro = Math.floor(valor);
+  const cents   = Math.round((valor-inteiro)*100);
+  let partes=[];
+  [Math.floor(inteiro/1e9)%1000,Math.floor(inteiro/1e6)%1000,Math.floor(inteiro/1e3)%1000,inteiro%1000].forEach((n,i)=>{
+    if (!n) return;
+    const g=grupos[3-i];
+    const s=g3(n);
+    if (g==='mil') partes.push(n===1?'mil':s+' mil');
+    else if (g==='milhão') partes.push(n===1?'um milhão':s+' milhões');
+    else partes.push(s);
+  });
+  let r=partes.join(', ')+(inteiro===1?' real':' reais');
+  if (cents>0) r+=' e '+g3(cents)+(cents===1?' centavo':' centavos');
+  return r;
+}
+function numPorExtenso(n) {
+  const e=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte','vinte e um','vinte e dois','vinte e três','vinte e quatro'];
+  return e[n] || n;
+}
+
+// ─── INIT ────────────────────────────────────────────────
+verificarSessao();
+</script>
+</body>
+</html>
