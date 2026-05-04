@@ -827,6 +827,35 @@
   </div>
 </div>
 
+<!-- Modal Cobranças por Cliente -->
+<div class="modal-overlay" id="modal-cobrancas-cliente">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="cob-cliente-title">Cobranças do Cliente</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px;" id="cob-cliente-sub"></div>
+      </div>
+      <div class="modal-close" onclick="closeModal('modal-cobrancas-cliente')">✕</div>
+    </div>
+    <!-- Resumo -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;" id="cob-cliente-stats">
+    </div>
+    <!-- Tabela -->
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Venda</th><th>Parcela</th><th>Valor</th>
+          <th>Vencimento</th><th>Pagamento</th><th>Status</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="cob-cliente-table"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cobrancas-cliente')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Parcelas da Venda -->
 <div class="modal-overlay" id="modal-parcelas">
   <div class="modal modal-lg">
@@ -1072,12 +1101,22 @@ async function verificarSessao() {
   if (!token || !user) { mostrarLogin(); return; }
   AUTH.token = token;
   AUTH.user = JSON.parse(user);
-  // Valida token com o servidor
   try {
     const me = await api('GET', '/auth/me');
     if (!me) return;
     AUTH.user = me;
     localStorage.setItem('mbx_user', JSON.stringify(me));
+    // Inicializa _nContrato com base nos contratos já existentes no banco
+    try {
+      const contratos = await api('GET', '/contratos');
+      if (contratos && contratos.length > 0) {
+        const maxNum = contratos.reduce((max, c) => {
+          const n = parseInt((c.num_contrato || '').replace('MBX-', '')) || 0;
+          return n > max ? n : max;
+        }, 0);
+        _nContrato = maxNum + 1;
+      }
+    } catch(e) { _nContrato = 1; }
     mostrarApp();
     showPage('dashboard');
   } catch {
@@ -1167,12 +1206,17 @@ async function renderClientes() {
     }
     tb.innerHTML = _clientes.map(c => `
       <tr>
-        <td class="td-name">${c.nome}</td>
+        <td class="td-name" style="cursor:pointer;" onclick="verCobrancasCliente(${c.id},'${c.nome.replace(/'/g,"\\'")}')">
+          ${c.nome}<br><span style="font-size:11px;color:var(--text3);font-weight:400;">clique para ver cobranças</span>
+        </td>
         <td class="td-mono">${c.doc}</td>
         <td>${c.rep || '—'}</td>
         <td>${c.tel || ''} ${c.email ? `<br><span style="font-size:12px;color:var(--text3)">${c.email}</span>` : ''}</td>
         <td>${c.cidade || ''}${c.estado ? ' - ' + c.estado : ''}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="openClienteEdit(${c.id})">Editar</button></td>
+        <td style="display:flex;gap:6px;">
+          <button class="btn btn-secondary btn-sm" onclick="openClienteEdit(${c.id})">Editar</button>
+          <button class="btn btn-blue btn-sm" onclick="verCobrancasCliente(${c.id},'${c.nome.replace(/'/g,"\\'")}')">💰 Cobranças</button>
+        </td>
       </tr>`).join('');
   } catch (err) {
     toast('Erro ao carregar clientes', 'error');
@@ -1311,9 +1355,30 @@ function renderTempSeriais() {
       ${s.sn}
       <span style="display:inline-flex;align-items:center;gap:4px;">
         <span class="badge ${s.status==='disponível'?'badge-green':'badge-red'}" style="font-size:10px;padding:1px 5px;">${s.status}</span>
-        ${s.status === 'disponível' ? `<span onclick="removeSerial('${s.sn}')" style="cursor:pointer;color:var(--red);">✕</span>` : ''}
+        ${s.status === 'disponível'
+          ? s._novo
+            ? `<span onclick="removeSerial('${s.sn}')" style="cursor:pointer;color:var(--text3);" title="Remover">✕</span>`
+            : `<span onclick="excluirSerialBanco(${s.id},'${s.sn}')" style="cursor:pointer;color:var(--red);" title="Excluir do banco">🗑</span>`
+          : '<span style="color:var(--text3);font-size:10px;">vendido</span>'}
       </span>
     </span>`).join('');
+}
+
+async function excluirSerialBanco(serialId, sn) {
+  if (!confirm(`Excluir a série ${sn}?\nEsta ação não pode ser desfeita.`)) return;
+  try {
+    await api('DELETE', `/produtos/${prodEditId}/serial/${serialId}`);
+    toast(`Série ${sn} excluída.`);
+    // Recarrega o produto completo do banco para refletir a exclusão
+    const prodAtualizado = await api('GET', `/produtos/${prodEditId}`);
+    if (prodAtualizado) {
+      tempSeriais = (prodAtualizado.seriais || []).map(s => ({...s}));
+      renderTempSeriais();
+    }
+    renderProdutos();
+  } catch (err) {
+    toast(err.message || 'Erro ao excluir série', 'error');
+  }
 }
 
 async function salvarProduto() {
@@ -1738,9 +1803,19 @@ async function gerarContrato(vendaId) {
     document.getElementById('contrato-preview-area').innerHTML = html;
     contratoAtual = { venda, numContrato, cliente: { nome, doc } };
 
-    // Registra no backend
-    await api('POST', '/contratos', { venda_id: vendaId, num_contrato: numContrato });
-    _nContrato++;
+    // Registra no backend apenas se ainda não existe contrato para esta venda
+    const contratosExist = await api('GET', '/contratos');
+    const jaExiste = (contratosExist || []).find(c => c.venda_id === vendaId);
+    if (!jaExiste) {
+      await api('POST', '/contratos', { venda_id: vendaId, num_contrato: numContrato });
+      _nContrato++;
+    } else {
+      // Usa o número do contrato já existente
+      contratoAtual.numContrato = jaExiste.num_contrato;
+      // Atualiza o número exibido no preview
+      document.getElementById('contrato-preview-area').innerHTML =
+        document.getElementById('contrato-preview-area').innerHTML;
+    }
 
     openModal('modal-contrato');
     renderContratos();
@@ -2169,6 +2244,110 @@ function reaisExtenso(valor) {
 function numPorExtenso(n) {
   const e=['zero','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez','onze','doze','treze','quatorze','quinze','dezesseis','dezessete','dezoito','dezenove','vinte','vinte e um','vinte e dois','vinte e três','vinte e quatro'];
   return e[n] || n;
+}
+
+// ─── COBRANÇAS POR CLIENTE ──────────────────────────────
+async function verCobrancasCliente(clienteId, clienteNome) {
+  try {
+    document.getElementById('cob-cliente-title').textContent = clienteNome;
+
+    // Busca todas as cobranças e filtra por cliente
+    const todas = await api('GET', '/parcelas/cobrancas') || [];
+    const lista = todas.filter(p => {
+      // Precisamos comparar pelo nome pois não temos cliente_id nas parcelas
+      return p.cliente_nome === clienteNome;
+    });
+
+    // Calcula resumo
+    const hoje = new Date().toISOString().split('T')[0];
+    const totalPago    = lista.filter(p => p.status === 'pago').reduce((a, p) => a + parseFloat(p.valor), 0);
+    const totalPendente = lista.filter(p => p.status !== 'pago' && p.status !== 'cancelado').reduce((a, p) => a + parseFloat(p.valor), 0);
+    const totalVencido = lista.filter(p => p.status_calc === 'vencido').reduce((a, p) => a + parseFloat(p.valor), 0);
+    const qtdParcelas  = lista.length;
+
+    document.getElementById('cob-cliente-sub').textContent = `${qtdParcelas} parcela(s) no total`;
+    document.getElementById('cob-cliente-stats').innerHTML = `
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Recebido</div>
+        <div style="font-size:18px;font-weight:600;color:var(--accent);">${fmtMoeda(totalPago)}</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">A Receber</div>
+        <div style="font-size:18px;font-weight:600;color:var(--yellow);">${fmtMoeda(totalPendente)}</div>
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Vencido</div>
+        <div style="font-size:18px;font-weight:600;color:var(--red);">${fmtMoeda(totalVencido)}</div>
+      </div>`;
+
+    if (!lista.length) {
+      document.getElementById('cob-cliente-table').innerHTML = `
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <div class="empty-icon">💰</div>
+            <div class="empty-title">Nenhuma cobrança para este cliente</div>
+            <div class="empty-sub">Apenas vendas parceladas geram cobranças</div>
+          </div>
+        </td></tr>`;
+      openModal('modal-cobrancas-cliente');
+      return;
+    }
+
+    const badgeStatus = {
+      'pago':'badge-green','vencido':'badge-red',
+      'vence_hoje':'badge-yellow','vence_semana':'badge-yellow',
+      'pendente':'badge-gray','cancelado':'badge-gray'
+    };
+    const labelStatus = {
+      'pago':'Pago','vencido':'Vencido','vence_hoje':'Vence hoje',
+      'vence_semana':'Vence em breve','pendente':'Pendente','cancelado':'Cancelado'
+    };
+
+    document.getElementById('cob-cliente-table').innerHTML = lista.map(p => `
+      <tr>
+        <td class="td-mono">#${String(p.venda_num).padStart(4,'0')}</td>
+        <td style="font-size:13px;">${p.numero === 0 ? '<strong>Entrada</strong>' : `${p.numero}ª parcela`}</td>
+        <td style="font-weight:600;">${fmtMoeda(p.valor)}</td>
+        <td style="${p.status_calc==='vencido'?'color:var(--red);font-weight:500;':''}">${fmtData(p.data_vencimento)}</td>
+        <td style="color:var(--text2);">${p.data_pagamento ? fmtData(p.data_pagamento) : '—'}</td>
+        <td><span class="badge ${badgeStatus[p.status_calc]||'badge-gray'}">${labelStatus[p.status_calc]||p.status_calc}</span></td>
+        <td>
+          ${p.status !== 'pago' && p.status !== 'cancelado'
+            ? `<button class="btn btn-primary btn-sm" onclick="registrarPgtoCliente(${p.id},'${clienteNome.replace(/'/g,"\\'")}',${clienteId})">✓ Pago</button>`
+            : `<button class="btn btn-secondary btn-sm" onclick="estornarPgtoCliente(${p.id},'${clienteNome.replace(/'/g,"\\'")}',${clienteId})">↩</button>`}
+        </td>
+      </tr>`).join('');
+
+    openModal('modal-cobrancas-cliente');
+  } catch (err) {
+    toast('Erro ao buscar cobranças: ' + err.message, 'error');
+  }
+}
+
+async function registrarPgtoCliente(parcelaId, clienteNome, clienteId) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const data = prompt('Data do pagamento (YYYY-MM-DD):', hoje);
+  if (data === null) return;
+  try {
+    await api('PATCH', `/parcelas/${parcelaId}/pagar`, { data_pagamento: data });
+    toast('Pagamento registrado!');
+    verCobrancasCliente(clienteId, clienteNome);
+    _todasCobrancas = [];
+  } catch (err) {
+    toast(err.message || 'Erro ao registrar pagamento', 'error');
+  }
+}
+
+async function estornarPgtoCliente(parcelaId, clienteNome, clienteId) {
+  if (!confirm('Estornar este pagamento?')) return;
+  try {
+    await api('PATCH', `/parcelas/${parcelaId}/estornar`, {});
+    toast('Pagamento estornado.');
+    verCobrancasCliente(clienteId, clienteNome);
+    _todasCobrancas = [];
+  } catch (err) {
+    toast(err.message || 'Erro ao estornar', 'error');
+  }
 }
 
 // ─── COBRANÇAS ──────────────────────────────────────────
