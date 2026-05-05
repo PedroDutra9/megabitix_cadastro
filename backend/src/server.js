@@ -7,6 +7,7 @@ const produtosRoutes  = require('./routes/produtos');
 const vendasRoutes    = require('./routes/vendas');
 const contratosRoutes = require('./routes/contratos');
 const { router: parcelasRouter } = require('./routes/parcelas');
+const despesasRoutes  = require('./routes/despesas');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -23,6 +24,7 @@ app.use('/api/produtos',  produtosRoutes);
 app.use('/api/vendas',    vendasRoutes);
 app.use('/api/contratos', contratosRoutes);
 app.use('/api/parcelas',  parcelasRouter);
+app.use('/api/despesas',  despesasRoutes);
 
 app.use((req, res) => res.status(404).json({ error: `Rota ${req.method} ${req.path} não encontrada` }));
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: 'Erro interno' }); });

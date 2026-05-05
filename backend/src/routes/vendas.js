@@ -202,6 +202,28 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// GET /api/vendas/faturamento/mensal — últimos 12 meses
+router.get('/faturamento/mensal', async (req, res) => {
+  try {
+    const { rows } = await query(`
+      SELECT
+        TO_CHAR(data_venda, 'YYYY-MM')  AS mes,
+        TO_CHAR(data_venda, 'Mon/YY')   AS mes_label,
+        COUNT(*)::int                   AS total_vendas,
+        COALESCE(SUM(valor_total), 0)   AS faturamento,
+        COUNT(*) FILTER (WHERE status = 'Pago')::int AS vendas_pagas,
+        COALESCE(SUM(valor_total) FILTER (WHERE status = 'Pago'), 0) AS faturamento_pago
+      FROM vendas
+      WHERE data_venda >= NOW() - INTERVAL '12 months'
+      GROUP BY 1, 2
+      ORDER BY 1
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar faturamento mensal' });
+  }
+});
+
 // GET /api/vendas/dashboard/stats
 router.get('/dashboard/stats', async (req, res) => {
   try {

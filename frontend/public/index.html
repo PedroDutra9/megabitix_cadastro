@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Megabitix — Sistema de Gestão Comercial</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
@@ -261,6 +262,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
         Estoque
       </div>
+      <div class="nav-item" onclick="showPage('despesas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        Despesas
+      </div>
     </div>
   </nav>
   <div class="sidebar-footer">
@@ -309,6 +314,7 @@
       </button>
     </div>
 
+    <!-- KPIs principais -->
     <div class="stats-grid" id="stats-grid">
       <div class="stat-card accent">
         <div class="stat-label">Vendas Realizadas</div>
@@ -316,7 +322,7 @@
         <div class="stat-sub">Total acumulado</div>
       </div>
       <div class="stat-card blue">
-        <div class="stat-label">Faturamento</div>
+        <div class="stat-label">Faturamento Total</div>
         <div class="stat-value" id="stat-fat">R$ 0</div>
         <div class="stat-sub">Valor total vendido</div>
       </div>
@@ -329,6 +335,50 @@
         <div class="stat-label">Produtos em Estoque</div>
         <div class="stat-value" id="stat-estoque">0</div>
         <div class="stat-sub">Disponíveis</div>
+      </div>
+    </div>
+
+    <!-- Financeiro resumo -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
+      <div class="stat-card accent">
+        <div class="stat-label">Receitas Recebidas</div>
+        <div class="stat-value" id="dash-receitas" style="font-size:20px;">R$ 0</div>
+        <div class="stat-sub">Parcelas pagas</div>
+      </div>
+      <div class="stat-card" style="border-color:var(--red);">
+        <div class="stat-label">Despesas Pagas</div>
+        <div class="stat-value" id="dash-despesas-pagas" style="font-size:20px;color:var(--red);">R$ 0</div>
+        <div class="stat-sub" id="dash-despesas-pendentes-sub">0 pendentes</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Saldo (Receitas - Despesas)</div>
+        <div class="stat-value" id="dash-saldo" style="font-size:20px;">R$ 0</div>
+        <div class="stat-sub">Resultado líquido</div>
+      </div>
+    </div>
+
+    <!-- Gráfico + tabela mensal -->
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:20px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Faturamento por Mês</span>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--accent);"><span style="width:10px;height:10px;background:var(--accent);border-radius:2px;display:inline-block;"></span>Faturamento</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--red);"><span style="width:10px;height:10px;background:var(--red);border-radius:2px;display:inline-block;"></span>Despesas</span>
+          </div>
+        </div>
+        <div style="position:relative;height:220px;">
+          <canvas id="chart-faturamento"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Resumo Mensal</span>
+          <select id="filtro-mes-ano" onchange="renderDashboard()" style="font-size:12px;padding:4px 8px;">
+          </select>
+        </div>
+        <div id="tabela-mensal-resumo" style="font-size:13px;"></div>
       </div>
     </div>
 
@@ -488,7 +538,6 @@
     </div>
   </div>
 
-</div><!-- /main -->
 
 <!-- COBRANÇAS -->
   <div class="page" id="page-cobrancas">
@@ -541,6 +590,76 @@
       </div>
     </div>
   </div>
+
+  <!-- DESPESAS -->
+  <div class="page" id="page-despesas">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Despesas</div>
+        <div class="page-sub">Controle de saídas e contas a pagar</div>
+      </div>
+      <button class="btn btn-primary" onclick="openModal('modal-despesa')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Despesa
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+      <div class="stat-card" style="border-color:var(--red);">
+        <div class="stat-label">Total Pago</div>
+        <div class="stat-value" id="desp-pago" style="font-size:20px;color:var(--red);">R$ 0</div>
+        <div class="stat-sub" id="desp-pago-qtd">0 despesas</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">A Pagar</div>
+        <div class="stat-value" id="desp-pendente" style="font-size:20px;">R$ 0</div>
+        <div class="stat-sub" id="desp-pendente-qtd">0 pendentes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Vencido</div>
+        <div class="stat-value" id="desp-vencido" style="font-size:20px;color:var(--red);">R$ 0</div>
+        <div class="stat-sub" id="desp-vencido-qtd">0 vencidas</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="search-bar">
+      <input type="text" placeholder="Buscar por descrição..." class="search-input" id="search-despesas" oninput="renderDespesas()">
+      <div class="search-filters">
+        <select id="filter-desp-status" onchange="renderDespesas()">
+          <option value="">Todos status</option>
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+          <option value="vencido">Vencido</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+        <select id="filter-desp-categoria" onchange="renderDespesas()">
+          <option value="">Todas categorias</option>
+          <option>Aluguel</option><option>Energia</option><option>Internet</option>
+          <option>Salários</option><option>Fornecedor</option><option>Impostos</option>
+          <option>Software</option><option>Marketing</option><option>Outros</option>
+        </select>
+        <select id="filter-desp-mes" onchange="renderDespesas()">
+          <option value="">Todos os meses</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Descrição</th><th>Categoria</th><th>Valor</th>
+            <th>Vencimento</th><th>Pagamento</th><th>Status</th><th>Recorrente</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="despesas-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
 
 <!-- ===== MODALS ===== -->
 
@@ -873,6 +992,86 @@
   </div>
 </div>
 
+<!-- Modal Nova/Editar Despesa -->
+<div class="modal-overlay" id="modal-despesa">
+  <div class="modal" style="width:560px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-despesa-title">Nova Despesa</div>
+      <div class="modal-close" onclick="closeModal('modal-despesa')">✕</div>
+    </div>
+    <input type="hidden" id="despesa-edit-id">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Descrição *</label>
+        <input id="d-descricao" placeholder="Ex: Aluguel do escritório, Conta de luz...">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="d-categoria">
+          <option value="Outros">Outros</option>
+          <option>Aluguel</option><option>Energia</option><option>Internet</option>
+          <option>Salários</option><option>Fornecedor</option><option>Impostos</option>
+          <option>Software</option><option>Marketing</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="d-valor" placeholder="0,00" oninput="if(document.getElementById('d-recorrente').checked) atualizarPreviewRecorrente()">
+      </div>
+      <div class="form-group">
+        <label>Data de Vencimento *</label>
+        <input type="date" id="d-vencimento" onchange="if(document.getElementById('d-recorrente').checked) atualizarPreviewRecorrente()">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="d-status" onchange="toggleStatusDespesa()">
+          <option value="pendente">Pendente</option>
+          <option value="pago">Pago</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group" id="d-pagamento-wrap" style="display:none;">
+        <label>Data de Pagamento</label>
+        <input type="date" id="d-pagamento">
+      </div>
+      <div class="form-group full">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="d-recorrente" onchange="toggleRecorrente()" style="width:auto;">
+          Despesa recorrente (gera múltiplas parcelas)
+        </label>
+      </div>
+      <div id="d-frequencia-wrap" style="display:none;grid-column:1/-1;">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Frequência</label>
+            <select id="d-frequencia" onchange="atualizarPreviewRecorrente()">
+              <option value="mensal">Mensal</option>
+              <option value="bimestral">Bimestral</option>
+              <option value="trimestral">Trimestral</option>
+              <option value="anual">Anual</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Quantas parcelas gerar</label>
+            <input type="number" id="d-num-parcelas" min="1" max="60" value="12" placeholder="Ex: 12" oninput="atualizarPreviewRecorrente()">
+          </div>
+          <div class="form-group full">
+            <div class="info-box" id="d-recorrente-preview" style="font-size:12.5px;color:var(--text2);"></div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Observação</label>
+        <textarea id="d-observacao" placeholder="Detalhes adicionais..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-despesa')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDespesa()">Salvar Despesa</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Cobranças por Cliente -->
 <div class="modal-overlay" id="modal-cobrancas-cliente">
   <div class="modal modal-lg">
@@ -1187,6 +1386,7 @@ function showPage(page, evt) {
   if (page === 'contratos') renderContratos();
   if (page === 'estoque')   renderEstoque();
   if (page === 'cobrancas') renderCobrancas();
+  if (page === 'despesas')  renderDespesas();
 }
 
 // ─── MODALS ─────────────────────────────────────────────
@@ -1200,8 +1400,11 @@ function closeModal(id) {
 }
 
 // ─── DASHBOARD ──────────────────────────────────────────
+let _chartFaturamento = null;
+
 async function renderDashboard() {
   try {
+    // KPIs principais
     const stats = await api('GET', '/vendas/dashboard/stats');
     if (!stats) return;
     document.getElementById('stat-vendas').textContent = stats.total_vendas ?? 0;
@@ -1209,12 +1412,152 @@ async function renderDashboard() {
     document.getElementById('stat-clientes').textContent = stats.total_clientes ?? 0;
     document.getElementById('stat-estoque').textContent = stats.disponiveis ?? 0;
 
+    // Financeiro resumo (parcelas + despesas)
+    const [parcelasStats, despesasStats] = await Promise.all([
+      api('GET', '/parcelas/cobrancas/stats').catch(() => null),
+      api('GET', '/despesas/stats').catch(() => null)
+    ]);
+    const receitas = parseFloat(parcelasStats?.valor_recebido || 0);
+    const despPagas = parseFloat(despesasStats?.total_pago || 0);
+    const saldo = receitas - despPagas;
+    document.getElementById('dash-receitas').textContent = fmtMoeda(receitas);
+    document.getElementById('dash-despesas-pagas').textContent = fmtMoeda(despPagas);
+    document.getElementById('dash-saldo').textContent = fmtMoeda(saldo);
+    document.getElementById('dash-saldo').style.color = saldo >= 0 ? 'var(--accent)' : 'var(--red)';
+    document.getElementById('dash-despesas-pendentes-sub').textContent =
+      `${despesasStats?.qtd_pendente || 0} pendentes · ${fmtMoeda(despesasStats?.total_vencido || 0)} vencido`;
+
+    // Faturamento mensal
+    const [fatMensal, despMensal] = await Promise.all([
+      api('GET', '/vendas/faturamento/mensal').catch(() => []),
+      api('GET', '/despesas/mensal').catch(() => [])
+    ]);
+    renderGraficoMensal(fatMensal || [], despMensal || []);
+    renderTabelaMensal(fatMensal || [], despMensal || []);
+
+    // Últimas vendas
     const vendas = await api('GET', '/vendas');
     if (!vendas) return;
     renderVendasTable(vendas.slice(0, 10), 'dashboard-vendas-table', true);
   } catch (err) {
     console.error('Erro dashboard:', err);
   }
+}
+
+function renderGraficoMensal(fatData, despData) {
+  const canvas = document.getElementById('chart-faturamento');
+  if (!canvas) return;
+
+  // Mescla meses de fat e desp
+  const mesesSet = new Set([...fatData.map(d => d.mes), ...despData.map(d => d.mes)]);
+  const meses = [...mesesSet].sort();
+  const labels = meses.map(m => {
+    const fat = fatData.find(d => d.mes === m);
+    const dep = despData.find(d => d.mes === m);
+    return (fat || dep)?.mes_label || m;
+  });
+  const fatValues  = meses.map(m => parseFloat(fatData.find(d => d.mes === m)?.faturamento || 0));
+  const despValues = meses.map(m => parseFloat(despData.find(d => d.mes === m)?.total || 0));
+
+  if (_chartFaturamento) _chartFaturamento.destroy();
+
+  _chartFaturamento = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Faturamento',
+          data: fatValues,
+          backgroundColor: 'rgba(0,229,160,0.7)',
+          borderColor: 'rgba(0,229,160,1)',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Despesas',
+          data: despValues,
+          backgroundColor: 'rgba(255,85,85,0.7)',
+          borderColor: 'rgba(255,85,85,1)',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmtMoeda(ctx.raw)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: { color: '#8892a4', font: { size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          ticks: {
+            color: '#8892a4', font: { size: 11 },
+            callback: v => 'R$ ' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTabelaMensal(fatData, despData) {
+  const sel = document.getElementById('filtro-mes-ano');
+  const mesesSet = new Set([...fatData.map(d => d.mes), ...despData.map(d => d.mes)]);
+  const meses = [...mesesSet].sort().reverse();
+
+  // Popula select de meses
+  const valorAtual = sel.value;
+  sel.innerHTML = meses.map(m => {
+    const fat = fatData.find(d => d.mes === m);
+    const dep = despData.find(d => d.mes === m);
+    const label = (fat || dep)?.mes_label || m;
+    return `<option value="${m}" ${m === valorAtual ? 'selected' : ''}>${label}</option>`;
+  }).join('');
+
+  const mesSel = sel.value || meses[0];
+  if (!mesSel) return;
+
+  const fat  = fatData.find(d => d.mes === mesSel);
+  const desp = despData.find(d => d.mes === mesSel);
+  const faturamento = parseFloat(fat?.faturamento || 0);
+  const despTotal   = parseFloat(desp?.total || 0);
+  const saldo = faturamento - despTotal;
+
+  document.getElementById('tabela-mensal-resumo').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;padding:4px 0;">
+      <div class="info-row">
+        <span style="color:var(--text2);">Vendas</span>
+        <strong>${fat?.total_vendas || 0} venda(s)</strong>
+      </div>
+      <div class="info-row">
+        <span style="color:var(--text2);">Faturamento</span>
+        <strong style="color:var(--accent);">${fmtMoeda(faturamento)}</strong>
+      </div>
+      <div class="info-row">
+        <span style="color:var(--text2);">Faturamento pago</span>
+        <strong style="color:var(--accent);">${fmtMoeda(parseFloat(fat?.faturamento_pago || 0))}</strong>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;" class="info-row">
+        <span style="color:var(--text2);">Despesas</span>
+        <strong style="color:var(--red);">${fmtMoeda(despTotal)}</strong>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:8px;" class="info-row total">
+        <span>Saldo do mês</span>
+        <strong style="color:${saldo >= 0 ? 'var(--accent)' : 'var(--red)'};">${fmtMoeda(saldo)}</strong>
+      </div>
+    </div>`;
 }
 
 function renderVendasTable(list, tbId, compact=false) {
@@ -2629,6 +2972,240 @@ async function removerAssinado() {
     renderContratos();
   } catch (err) {
     toast('Erro ao remover contrato assinado', 'error');
+  }
+}
+
+// ─── DESPESAS ────────────────────────────────────────────
+let despesaEditId = null;
+
+function toggleRecorrente() {
+  const rec = document.getElementById('d-recorrente').checked;
+  document.getElementById('d-frequencia-wrap').style.display = rec ? 'block' : 'none';
+  if (rec) atualizarPreviewRecorrente();
+}
+
+function atualizarPreviewRecorrente() {
+  const freq = document.getElementById('d-frequencia').value;
+  const nParc = parseInt(document.getElementById('d-num-parcelas').value) || 1;
+  const vencto = document.getElementById('d-vencimento').value;
+  const valor = parseFloat(document.getElementById('d-valor').value) || 0;
+  if (!vencto || !valor) {
+    document.getElementById('d-recorrente-preview').textContent = 'Preencha o valor e a data de vencimento para ver a prévia.';
+    return;
+  }
+  const mesesMap = { mensal: 1, bimestral: 2, trimestral: 3, anual: 12 };
+  const intervalo = mesesMap[freq] || 1;
+  const [ano, mes, dia] = vencto.split('-').map(Number);
+  const mesesNomes = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  let datas = [];
+  for (let i = 0; i < Math.min(nParc, 6); i++) {
+    const dt = new Date(ano, mes - 1 + (i * intervalo), dia);
+    datas.push(`${String(dt.getDate()).padStart(2,'0')}/${mesesNomes[dt.getMonth()]}/${dt.getFullYear()}`);
+  }
+  const totalGeral = valor * nParc;
+  const preview = document.getElementById('d-recorrente-preview');
+  preview.innerHTML = `
+    <strong style="color:var(--text);">Serão geradas ${nParc} despesa(s) de ${fmtMoeda(valor)} = ${fmtMoeda(totalGeral)} total</strong><br>
+    <span style="color:var(--text3);">Vencimentos: ${datas.join(' · ')}${nParc > 6 ? ' ...' : ''}</span>`;
+}
+
+function toggleStatusDespesa() {
+  const status = document.getElementById('d-status').value;
+  document.getElementById('d-pagamento-wrap').style.display = status === 'pago' ? 'block' : 'none';
+}
+
+async function renderDespesas() {
+  try {
+    // Stats
+    const stats = await api('GET', '/despesas/stats');
+    if (stats) {
+      document.getElementById('desp-pago').textContent = fmtMoeda(stats.total_pago);
+      document.getElementById('desp-pendente').textContent = fmtMoeda(stats.total_pendente);
+      document.getElementById('desp-vencido').textContent = fmtMoeda(stats.total_vencido);
+      document.getElementById('desp-pago-qtd').textContent = `${stats.qtd_pago} despesa(s)`;
+      document.getElementById('desp-pendente-qtd').textContent = `${stats.qtd_pendente} pendente(s)`;
+      document.getElementById('desp-vencido-qtd').textContent = `${stats.qtd_vencido} vencida(s)`;
+    }
+
+    // Popular filtro de meses
+    const hoje = new Date();
+    const selMes = document.getElementById('filter-desp-mes');
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    if (selMes && selMes.options.length <= 1) {
+      selMes.innerHTML = '<option value="">Todos os meses</option>' +
+        meses.map((m,i) => `<option value="${String(i+1).padStart(2,'0')}">${m} ${hoje.getFullYear()}</option>`).join('');
+    }
+
+    // Busca despesas
+    const status    = document.getElementById('filter-desp-status')?.value || '';
+    const categoria = document.getElementById('filter-desp-categoria')?.value || '';
+    const mes       = document.getElementById('filter-desp-mes')?.value || '';
+    const busca     = document.getElementById('search-despesas')?.value || '';
+
+    let qs = [];
+    if (status)    qs.push('status='+encodeURIComponent(status));
+    if (categoria) qs.push('categoria='+encodeURIComponent(categoria));
+    if (mes)       qs.push('mes='+mes+'&ano='+hoje.getFullYear());
+    const despesas = await api('GET', `/despesas${qs.length?'?'+qs.join('&'):''}`) || [];
+
+    // Filtra busca local
+    const hoje_str = new Date().toISOString().split('T')[0];
+    const lista = busca
+      ? despesas.filter(d => d.descricao.toLowerCase().includes(busca.toLowerCase()))
+      : despesas;
+
+    const tb = document.getElementById('despesas-table');
+    if (!lista.length) {
+      tb.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💸</div><div class="empty-title">Nenhuma despesa encontrada</div></div></td></tr>`;
+      return;
+    }
+
+    const getStatus = d => {
+      if (d.status === 'pago') return { cls: 'badge-green', label: 'Pago' };
+      if (d.status === 'cancelado') return { cls: 'badge-gray', label: 'Cancelado' };
+      if (d.data_vencimento?.substring(0,10) < hoje_str) return { cls: 'badge-red', label: 'Vencido' };
+      return { cls: 'badge-yellow', label: 'Pendente' };
+    };
+
+    tb.innerHTML = lista.map(d => {
+      const s = getStatus(d);
+      return `<tr>
+        <td class="td-name">${d.descricao}${d.observacao?`<br><span style="font-size:11px;color:var(--text3);">${d.observacao}</span>`:''}
+        </td>
+        <td><span class="badge badge-blue">${d.categoria}</span></td>
+        <td style="font-weight:600;color:var(--red);">${fmtMoeda(d.valor)}</td>
+        <td style="${s.label==='Vencido'?'color:var(--red);font-weight:500;':''}">${fmtData(d.data_vencimento)}</td>
+        <td style="color:var(--text2);">${d.data_pagamento ? fmtData(d.data_pagamento) : '—'}</td>
+        <td><span class="badge ${s.cls}">${s.label}</span></td>
+        <td style="font-size:12px;color:var(--text3);">${d.recorrente ? '🔄 '+d.frequencia : '—'}</td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          ${d.status !== 'pago' && d.status !== 'cancelado'
+            ? `<button class="btn btn-primary btn-sm" onclick="pagarDespesa(${d.id})">✓ Pagar</button>`
+            : ''}
+          <button class="btn btn-secondary btn-sm" onclick="editarDespesa(${d.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirDespesa(${d.id})">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    toast('Erro ao carregar despesas: ' + err.message, 'error');
+  }
+}
+
+async function salvarDespesa() {
+  const descricao = document.getElementById('d-descricao').value.trim();
+  const valor     = parseFloat(document.getElementById('d-valor').value);
+  const vencto    = document.getElementById('d-vencimento').value;
+  if (!descricao || !valor || !vencto) { toast('Preencha descrição, valor e vencimento', 'error'); return; }
+
+  const recorrente = document.getElementById('d-recorrente').checked;
+  const frequencia = document.getElementById('d-frequencia').value;
+  const nParcelas  = parseInt(document.getElementById('d-num-parcelas').value) || 1;
+  const mesesMap   = { mensal: 1, bimestral: 2, trimestral: 3, anual: 12 };
+  const intervalo  = mesesMap[frequencia] || 1;
+
+  const baseBody = {
+    descricao,
+    categoria:       document.getElementById('d-categoria').value,
+    valor,
+    status:          document.getElementById('d-status').value,
+    data_pagamento:  document.getElementById('d-pagamento').value || null,
+    recorrente,
+    frequencia,
+    observacao:      document.getElementById('d-observacao').value
+  };
+
+  const btn = document.querySelector('#modal-despesa .btn-primary');
+  loading(btn, true);
+  try {
+    if (despesaEditId) {
+      await api('PUT', `/despesas/${despesaEditId}`, { ...baseBody, data_vencimento: vencto });
+      toast('Despesa atualizada!');
+    } else if (recorrente && nParcelas > 1) {
+      // Gera múltiplas despesas
+      const [ano, mes, dia] = vencto.split('-').map(Number);
+      let criadas = 0;
+      for (let i = 0; i < nParcelas; i++) {
+        const dt = new Date(ano, mes - 1 + (i * intervalo), dia);
+        const dataVenc = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+        const descParc = nParcelas > 1 ? `${descricao} (${i+1}/${nParcelas})` : descricao;
+        await api('POST', '/despesas', { ...baseBody, descricao: descParc, data_vencimento: dataVenc });
+        criadas++;
+      }
+      toast(`${criadas} despesas recorrentes criadas com sucesso!`);
+    } else {
+      await api('POST', '/despesas', { ...baseBody, data_vencimento: vencto });
+      toast('Despesa cadastrada!');
+    }
+    despesaEditId = null;
+    document.getElementById('modal-despesa-title').textContent = 'Nova Despesa';
+    closeModal('modal-despesa');
+    limparFormDespesa();
+    renderDespesas();
+    renderDashboard();
+  } catch (err) {
+    toast(err.message || 'Erro ao salvar despesa', 'error');
+  } finally {
+    loading(btn, false);
+  }
+}
+
+function limparFormDespesa() {
+  ['d-descricao','d-valor','d-vencimento','d-pagamento','d-observacao'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('d-categoria').value = 'Outros';
+  document.getElementById('d-status').value = 'pendente';
+  document.getElementById('d-recorrente').checked = false;
+  document.getElementById('d-frequencia-wrap').style.display = 'none';
+  document.getElementById('d-pagamento-wrap').style.display = 'none';
+  const np = document.getElementById('d-num-parcelas'); if(np) np.value = 12;
+  const prev = document.getElementById('d-recorrente-preview'); if(prev) prev.innerHTML = '';
+}
+
+async function editarDespesa(id) {
+  const despesas = await api('GET', '/despesas') || [];
+  const d = despesas.find(x => x.id === id);
+  if (!d) return;
+  despesaEditId = id;
+  document.getElementById('modal-despesa-title').textContent = 'Editar Despesa';
+  document.getElementById('d-descricao').value = d.descricao || '';
+  document.getElementById('d-categoria').value = d.categoria || 'Outros';
+  document.getElementById('d-valor').value = d.valor || '';
+  document.getElementById('d-vencimento').value = (d.data_vencimento||'').substring(0,10);
+  document.getElementById('d-status').value = d.status || 'pendente';
+  document.getElementById('d-pagamento').value = (d.data_pagamento||'').substring(0,10);
+  document.getElementById('d-recorrente').checked = d.recorrente || false;
+  document.getElementById('d-frequencia').value = d.frequencia || 'mensal';
+  document.getElementById('d-observacao').value = d.observacao || '';
+  document.getElementById('d-frequencia-wrap').style.display = d.recorrente ? 'block' : 'none';
+  document.getElementById('d-pagamento-wrap').style.display = d.status === 'pago' ? 'block' : 'none';
+  openModal('modal-despesa');
+}
+
+async function pagarDespesa(id) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const data = prompt('Data do pagamento (YYYY-MM-DD):', hoje);
+  if (data === null) return;
+  try {
+    await api('PATCH', `/despesas/${id}/pagar`, { data_pagamento: data });
+    toast('Despesa paga!');
+    renderDespesas();
+    renderDashboard();
+  } catch (err) {
+    toast(err.message || 'Erro ao pagar despesa', 'error');
+  }
+}
+
+async function excluirDespesa(id) {
+  if (!confirm('Excluir esta despesa? A ação não pode ser desfeita.')) return;
+  try {
+    await api('DELETE', `/despesas/${id}`);
+    toast('Despesa excluída.');
+    renderDespesas();
+    renderDashboard();
+  } catch (err) {
+    toast(err.message || 'Erro ao excluir', 'error');
   }
 }
 
